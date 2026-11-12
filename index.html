@@ -77,7 +77,22 @@ kbd { font-family: var(--pixel); font-size: 12px; background: #FFFFFF; color: #4
 .o-keys .ptitle { font-size: 14px; margin-bottom: 14px; }
 .keys { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 26px; font-size: 14px; letter-spacing: .06em; }
 .keys div { display: flex; gap: 8px; align-items: center; }
-.o-actions { position: absolute; left: 1250px; top: 584px; width: 230px; display: grid; gap: 26px; }
+.o-actions { position: absolute; left: 1250px; bottom: 104px; width: 230px; display: grid; gap: 26px; }
+/* mini-game podium on the opening screen: 2nd · 1st · 3rd */
+.podium { display: grid; grid-template-columns: 1fr 1.08fr 1fr; align-items: end; gap: 4px; cursor: pointer; border: 0; padding: 10px 10px 0; font: inherit; color: inherit; background: rgb(250 248 240 / .88); box-shadow: 0 0 0 3px var(--o), 6px 6px 0 0 var(--sh); }
+.podium-t { grid-column: 1 / -1; text-align: center; font-size: 12px; font-weight: 700; letter-spacing: .12em; color: #454949; margin-bottom: 4px; }
+.pd { display: grid; justify-items: center; gap: 3px; min-width: 0; }
+.pd-nick { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; letter-spacing: .02em; padding: 2px 6px; background: rgb(255 253 246 / .92); box-shadow: 0 0 0 2px var(--o); }
+.pd canvas { width: 48px; height: 48px; image-rendering: pixelated; display: block; }
+.pd-step { width: 100%; display: grid; place-items: center; align-content: center; gap: 1px; color: #3A2E10; font-weight: 700; box-shadow: 0 -3px 0 0 var(--o), -3px 0 0 0 var(--o), 3px 0 0 0 var(--o), inset 0 4px 0 0 rgb(255 255 255 / .45); }
+.pd-step b { font-size: 20px; line-height: 1; } .pd-step span { font-size: 10px; letter-spacing: .02em; opacity: .8; }
+.pd.r1 .pd-step { height: 74px; background: #F5C518; } .pd.r2 .pd-step { height: 54px; background: #CBD2D6; } .pd.r3 .pd-step { height: 40px; background: #D69A5E; }
+.pd.empty canvas { opacity: .25; } .pd.empty .pd-nick { opacity: .5; }
+.podium:hover .pd-nick, .podium:focus-visible .pd-nick { background: #FFE680; }
+#frame.portrait .podium { width: 500px; justify-self: center; grid-column: 1 / -1; gap: 8px; padding: 16px 16px 0; }
+#frame.portrait .podium-t { font-size: 18px; } #frame.portrait .pd-nick { font-size: 18px; padding: 3px 8px; }
+#frame.portrait .pd canvas { width: 72px; height: 72px; } #frame.portrait .pd-step b { font-size: 30px; } #frame.portrait .pd-step span { font-size: 15px; }
+#frame.portrait .pd.r1 .pd-step { height: 104px; } #frame.portrait .pd.r2 .pd-step { height: 76px; } #frame.portrait .pd.r3 .pd-step { height: 56px; }
 .o-actions .pbtn { width: 100%; }
 .o-actions .o-rank { width: 50%; justify-self: start; padding-left: 0; padding-right: 0; letter-spacing: .04em; font-size: 15px; }
 #frame.portrait .o-actions .o-rank { grid-column: 1 / -1; width: calc((100% - 26px) / 3 / 2); }
@@ -94,9 +109,9 @@ kbd { font-family: var(--pixel); font-size: 12px; background: #FFFFFF; color: #4
 #frame.portrait .o-name { font-size: 150px; }
 #frame.portrait .o-sub { left: 80px; top: 400px; width: 740px; font-size: 24px; }
 #frame.portrait .o-sub span { font-size: 18px; }
-#frame.portrait .o-keys { left: 80px; top: 1010px; width: 740px; }
+#frame.portrait .o-keys { left: 80px; top: 880px; width: 740px; }
 #frame.portrait .keys { font-size: 18px; }
-#frame.portrait .o-actions { left: 80px; top: 1330px; width: 740px; grid-template-columns: 1fr 2fr; }
+#frame.portrait .o-actions { left: 80px; bottom: 134px; width: 740px; grid-template-columns: 1fr 2fr; }
 
 /* ---- game ---- */
 #stage { position: absolute; inset: 0; overflow: hidden; background: #0d1112; user-select: none; -webkit-user-select: none; }
@@ -407,7 +422,7 @@ th { background: var(--tint); font-weight: 700; }
         </div>
       </div>
       <div class="o-actions">
-        <button class="pbtn white o-rank" id="btn-rank">역대 순위</button>
+        <button class="podium" id="btn-rank" aria-label="미니게임 역대 순위 보기"><span class="podium-t">미니게임 역대 순위</span><span class="pd r2" id="pd2"></span><span class="pd r1" id="pd1"></span><span class="pd r3" id="pd3"></span></button>
         <button class="pbtn white blink" id="btn-info">설명</button>
         <button class="pbtn" id="btn-play">PLAY</button>
       </div>
@@ -652,6 +667,7 @@ function makeChips(c, values, onPick, html) {
 function show(id) {
   try { SND.setAmb(id === "s-game" ? 1 : id === "s-open" ? 0.45 : 0); SND.music(id === "s-game" ? 0.55 : id === "s-results" ? 0 : 1); } catch {}
   ["s-open", "s-game", "s-survey", "s-between", "s-done", "s-results"].forEach((s) => ($(s).hidden = s !== id));
+  if (id === "s-open" && typeof loadPodium === "function") loadPodium();
   const doc = id === "s-results"; $("frame-host").hidden = doc; $("app").hidden = !doc;
   document.body.style.overflow = doc ? "" : "hidden";
   window.scrollTo(0, 0);
@@ -2511,12 +2527,39 @@ function boardHTML(rows, meId) {
   const medal = ["gold", "silver", "bronze"];
   return rows.slice(0, 5).map((r, i) => `<li class="${r.id === meId ? "me" : ""}"><span class="rank ${medal[i] || ""}">${i + 1}</span><b>${esc(String(r.nick || "여행자"))}</b><span class="coins">코인 ${r.coins}개</span><span class="sec">${(+r.sec).toFixed(1)}초 생존</span></li>`).join("");
 }
-$("btn-rank").addEventListener("click", async () => {
-  $("rank-list").innerHTML = ""; $("rank-note").textContent = "불러오는 중입니다."; openModal("m-rank");
+async function boardRows() {
   let rows = [], meId = null; const db = await capDb, user = await capUser;
   if (HOSTED_OUTSIDE) rows = await sheetBoard();
   else if (db) { try { if (user) meId = await user.id(); const snap = await db.collection("board").get(); rows = snap.docs.map((d) => ({ id: d.id, ...d.data() })); } catch { rows = []; } }
-  rows.sort((a, b) => b.coins - a.coins || b.sec - a.sec);
+  rows.sort((a, b) => b.coins - a.coins || b.sec - a.sec); return { rows, meId };
+}
+// a tiny pixel bust per player; the look comes from the nickname so it stays the same every time
+function drawBust(cv, nick, empty) {
+  const g = cv.getContext("2d"); g.imageSmoothingEnabled = false; g.clearRect(0, 0, 16, 16);
+  if (empty) { g.fillStyle = "#9A9C95"; g.fillRect(5, 2, 6, 7); g.fillRect(2, 11, 12, 5); g.fillRect(7, 9, 2, 2); return; }
+  let h = 7; for (const ch of String(nick)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const pk = (arr, s) => arr[(h >>> s) % arr.length];
+  const skin = pk(["#F1D3B5", "#E6BF98", "#D7A87F", "#B9845C", "#8E5E3E"], 0), hair = pk(["#2B2321", "#4A3326", "#7A5236", "#B8B2A8", "#D9C9A3", "#1E2433"], 3);
+  const top = pk(["#2E3F66", "#A33A35", "#3E5C4A", "#C9B48D", "#5B4636", "#7A2E2E", "#8E979B", "#E2B33C"], 6), style = (h >>> 9) % 3;
+  g.fillStyle = top; g.fillRect(2, 12, 12, 4); g.fillRect(3, 11, 10, 1); g.fillStyle = "rgb(255 255 255 / .25)"; g.fillRect(7, 11, 2, 5);
+  g.fillStyle = skin; g.fillRect(7, 10, 2, 2); g.fillRect(4, 3, 8, 8); g.fillRect(3, 6, 1, 2); g.fillRect(12, 6, 1, 2);
+  g.fillStyle = hair; g.fillRect(4, 2, 8, 2); g.fillRect(3, 3, 1, 3); g.fillRect(12, 3, 1, 3);
+  if (style === 1) { g.fillRect(4, 4, 3, 1); g.fillRect(3, 3, 1, 6); g.fillRect(12, 3, 1, 6); } else if (style === 2) { g.fillRect(5, 1, 6, 1); g.fillRect(4, 4, 8, 1); }
+  g.fillStyle = "#1A1A1A"; g.fillRect(6, 6, 1, 2); g.fillRect(9, 6, 1, 2); g.fillStyle = "#C9746A"; g.fillRect(7, 9, 2, 1);
+}
+let podiumAt = 0;
+async function loadPodium(force) {
+  if (!force && Date.now() - podiumAt < 20000) return; podiumAt = Date.now();
+  const { rows } = await boardRows();
+  [1, 2, 3].forEach((n) => {
+    const r = rows[n - 1], el = $("pd" + n); el.className = `pd r${n}${r ? "" : " empty"}`;
+    el.innerHTML = `<span class="pd-nick">${r ? esc(String(r.nick || "여행자")) : "비어 있음"}</span><canvas width="16" height="16"></canvas><span class="pd-step"><b>${n}</b><span>${r ? `코인 ${r.coins}개` : "-"}</span></span>`;
+    drawBust(el.querySelector("canvas"), r ? r.nick || "여행자" : "", !r);
+  });
+}
+$("btn-rank").addEventListener("click", async () => {
+  $("rank-list").innerHTML = ""; $("rank-note").textContent = "불러오는 중입니다."; openModal("m-rank");
+  const { rows, meId } = await boardRows();
   $("rank-list").innerHTML = boardHTML(rows, meId);
   $("rank-note").textContent = rows.length ? "코인이 많은 순, 같으면 오래 버틴 순입니다." : "아직 기록이 없습니다. 첫 순위의 주인공이 되어 보세요.";
   if (rows.length) SND.fanfare();
