@@ -240,7 +240,7 @@ kbd { font-family: var(--pixel); font-size: 12px; background: #FFFFFF; color: #4
 .nfc b { position: relative; width: 62px; height: 62px; display: grid; place-items: center; background: #3D7BD8; color: #fff; font-size: 15px; letter-spacing: .08em; box-shadow: 0 0 0 3px var(--o); }
 .nfc.done b { background: #3E9A5B; }
 .mp-score { width: 100%; display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; letter-spacing: .04em; color: #2B2E2F; padding: 2px 2px 0; }
-.mp-score #ms-coin { color: #9A7414; } .mp-score #ms-best { color: #7A7D77; }
+.mp-score #ms-coin { color: #9A7414; } .mp-score #ms-best { color: #C94F2E; max-width: 52%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
 .mp-cvwrap { position: relative; width: 100%; }
 .mp-stage { position: absolute; left: 50%; top: 26%; transform: translateX(-50%); white-space: nowrap; padding: 6px 12px; background: rgb(255 253 246 / .94); font-size: 13px; letter-spacing: .08em; box-shadow: 0 0 0 3px var(--o); transition: opacity .3s; }
 #frame.portrait .mp-score { font-size: 21px; } #frame.portrait .mp-stage { font-size: 21px; padding: 10px 18px; }
@@ -299,7 +299,7 @@ kbd { font-family: var(--pixel); font-size: 12px; background: #FFFFFF; color: #4
 .rounds .rl { display: block; width: 46px; height: 4px; margin: 0 4px; background: repeating-linear-gradient(90deg, var(--o) 0 6px, transparent 6px 10px); }
 .rounds .rb.done + .rl { background: var(--o); }
 .rounds.big .rb { width: 50px; height: 50px; font-size: 24px; } .rounds.big .rl { width: 90px; height: 5px; }
-#frame.touch-on .hud .tc { position: absolute; left: 50%; top: 26px; transform: translateX(-50%); }
+.hud .tc { position: absolute; left: 50%; top: 26px; transform: translateX(-50%); }
 .ov-head { display: flex; align-items: center; gap: 22px; }
 .ov-round { margin: 0; display: grid; gap: 2px; letter-spacing: .06em; }
 .ov-round b { font-size: 16px; }
@@ -1593,7 +1593,7 @@ function step(dt) {
         const side = (dx * -f.z + dz * f.x) >= 0 ? 1 : -1;
         r.state = "yield"; r.yieldT = 2.6; r.npcTarget = null; r.tx = r.x + -f.z * side * 2.2 + f.x * 0.6; r.tz = r.z + f.x * side * 2.2 + f.z * 0.6; log("robot_yield", { robot: r.id });
       });
-      const run = keys.has("run") && mv > 0 ? 1.4 : 1; if (!G.walkNote && mv > 0) { G.walkNote = true; toast("실제 발걸음 속도에 맞춰 걷고 있습니다", 3000); } G.running2 = run > 1; const sp = 1.5 * run * slow * dt, nx = p.x + (f.x * mv + rg.x * st) * sp, nz = p.z + (f.z * mv + rg.z * st) * sp;
+      const run = keys.has("run") && mv > 0 ? 1.4 : 1; if (!G.walkNote && mv > 0) { G.walkNote = true; toast("실제 발걸음 속도에 맞춰 걷고 있습니다", 3000); } G.running2 = run > 1; const sp = (TOUCH ? 1.72 : 1.5) * run * slow * dt, nx = p.x + (f.x * mv + rg.x * st) * sp, nz = p.z + (f.z * mv + rg.z * st) * sp;
       if (walkable(nx, nz)) { p.x = nx; p.z = nz; moving = true; } else if (walkable(nx, p.z)) { p.x = nx; moving = true; } else if (walkable(p.x, nz)) { p.z = nz; moving = true; }
     }
   }
@@ -1845,6 +1845,14 @@ function miniPlay() {
   if (MINI.phase !== "ask" && MINI.phase !== "idle") return;
   MINI.phase = "play"; mpView("play"); MINI.y = 0; MINI.vy = 0; MINI.air = 0; MINI.obs = []; MINI.coins = []; MINI.plats = []; MINI.pop = []; MINI.got = 0; MINI.score = 0; MINI.run = true; MINI.runT = 0; MINI.spawn = 1.2; MINI.dist = 0; MINI.stage = 0; MINI.banner = 1.6;
   G.mini.plays++; log("mini_open"); miniDraw();
+  boardRows().then(({ rows, meId }) => { MINI.board = rows.filter((r) => r.id !== meId && r.id !== (S && S.id) && r.id !== "me"); }).catch(() => {});
+}
+// the next player above me on the all-time board (coins over the whole visit, like the ranking)
+function nextRival() {
+  const rows = MINI.board; if (!rows) return null;
+  const mine = (S?.records || []).reduce((a, r) => a + (r.summary.miniCoins || 0), 0) + (G.mini.coins || 0);
+  let idx = -1; rows.forEach((r, i) => { if (r.coins > mine) idx = i; });
+  return { mine, idx, r: idx >= 0 ? rows[idx] : null, n: rows.length };
 }
 $("mini-yes").addEventListener("click", (e) => { e.stopPropagation(); G.mini.accepts = (G.mini.accepts || 0) + 1; log("mini_accept"); SND.pop(); miniPlay(); });
 $("mini-no").addEventListener("click", (e) => { e.stopPropagation(); if (MINI.phase !== "ask") return; G.mini.declines = (G.mini.declines || 0) + 1; log("mini_decline"); MINI.phase = "idle"; mpView("idle"); });
@@ -1886,19 +1894,26 @@ function miniStep(dt) {
       // a second, higher belt right after a low one (a staircase)
       if (!high && lvl >= 1 && Math.random() < 0.45) { const p2 = { x: pl.x + pl.w + 10, w: 34, h: pl.h + 11 }; MINI.plats.push(p2); MINI.coins.push({ x: p2.x + p2.w / 2, h: p2.h + 12, big: true }); }
       MINI.spawn = (pl.w + 30) / (46 + Math.min(40, MINI.score * 1.5)) + rand(0.5, 1.0);
+    } else if (lvl >= 1 && k < 0.86 && Math.random() < 0.5) {
+      // later stretches: a low-flying drone to run under, a stacked pair of bags, or a wide luggage cart
+      const q = Math.random();
+      if (q < 0.36) { MINI.obs.push({ x: x0, w: 9, h: 5, base: pick([15, 17]), bird: true, vx: 14 }); [6, 12, 18].forEach((dx) => MINI.coins.push({ x: x0 + dx, h: 5 })); }
+      else if (q < 0.7) { MINI.obs.push({ x: x0, w: 10, h: 20, c: pick(["#2E3F66", "#A33A35"]), stack: true }); MINI.coins.push({ x: x0 + 5, h: 34, big: true }); }
+      else { MINI.obs.push({ x: x0, w: 20, h: 7, cart: true }); [-2, 6, 14, 22].forEach((dx, i) => MINI.coins.push({ x: x0 + dx, h: 17 + [0, 3, 3, 0][i] })); }
+      MINI.spawn = rand(1.2, 1.9) - Math.min(0.3, lvl * 0.06);
     } else {
       const o = { x: x0, ...bag() }; MINI.obs.push(o);
       if (k < 0.75) [-10, -4, 2, 8].forEach((dx, i) => MINI.coins.push({ x: o.x + o.w / 2 + dx, h: o.h + 8 + [2, 6, 6, 2][i] }));
       else if (k < 0.88) [26, 32, 38].forEach((dx) => MINI.coins.push({ x: o.x + dx, h: 5 }));
       else MINI.coins.push({ x: o.x + o.w / 2, h: o.h + 24, big: true });
-      MINI.spawn = rand(1.1, 2.0);
+      MINI.spawn = rand(1.0, 1.8) - Math.min(0.3, lvl * 0.06);
     }
   }
   const sp = 46 + Math.min(40, MINI.score * 1.5);
   MINI.dist += sp * dt; const st = Math.floor(MINI.dist / STAGE_LEN);
   if (st !== MINI.stage) { MINI.stage = st; MINI.banner = 1.8; G.mini.maxStage = Math.max(G.mini.maxStage || 0, st); log("mini_stage", { stage: st }); SND.click(); }
   if (MINI.banner > 0) MINI.banner -= dt;
-  MINI.obs.forEach((o) => (o.x -= sp * dt)); MINI.coins.forEach((c) => (c.x -= sp * dt)); MINI.plats.forEach((pl) => (pl.x -= sp * dt)); MINI.plats = MINI.plats.filter((pl) => pl.x + pl.w > -2); MINI.pop.forEach((p) => { p.t -= dt; p.y -= dt * 14; }); MINI.pop = MINI.pop.filter((p) => p.t > 0);
+  MINI.obs.forEach((o) => (o.x -= (sp + (o.vx || 0)) * dt)); MINI.coins.forEach((c) => (c.x -= sp * dt)); MINI.plats.forEach((pl) => (pl.x -= sp * dt)); MINI.plats = MINI.plats.filter((pl) => pl.x + pl.w > -2); MINI.pop.forEach((p) => { p.t -= dt; p.y -= dt * 14; }); MINI.pop = MINI.pop.filter((p) => p.t > 0);
   MINI.coins = MINI.coins.filter((c) => {
     if (c.x > 13 && c.x < 31 && Math.abs(c.h - (MINI.y + 6)) < 8) { const v = c.big ? 3 : 1; MINI.got += v; MINI.score += v; SND.coin(); G.mini.coins = (G.mini.coins || 0) + v; G.mini.best = Math.max(G.mini.best, MINI.score); MINI.pop.push({ x: c.x - 2, y: MINI.h - 14 - c.h - 4, t: 0.5, v }); return false; }
     return c.x > -4;
@@ -1937,7 +1952,11 @@ function miniDraw() {
     g.fillStyle = nightK > 0.5 ? "#1A1D22" : "#5E676B"; g.fillRect(x + 4, top + 5, 2, pl.h - 5); g.fillRect(x + pl.w - 6, top + 5, 2, pl.h - 5);
     g.fillStyle = "#2B2E2F"; g.fillRect(x, top, pl.w, 5); g.fillStyle = "#4A5154"; for (let sx = x + 1 + Math.round((MINI.t * 20) % 5); sx < x + pl.w - 1; sx += 5) g.fillRect(sx, top + 1, 2, 2);
     g.fillStyle = "#F2C230"; g.fillRect(x, top + 4, pl.w, 1); });
-  MINI.obs.forEach((o) => { if (o.tack) { const x = Math.round(o.x); g.fillStyle = "#9AA3A8"; g.fillRect(x, gy - 2, 6, 2); g.fillStyle = "#D7DDE0"; g.fillRect(x + 1, gy - 2, 1, 1); g.fillStyle = "#C94F2E"; g.fillRect(x + 2, gy - 4, 2, 2); g.fillStyle = "#E7EBED"; g.fillRect(x + 2, gy - 5, 2, 1); return; } const b = o.base || 0; g.fillStyle = o.c; g.fillRect(Math.round(o.x), gy - b - o.h, o.w, o.h); g.fillStyle = "#2B2E2F"; g.fillRect(Math.round(o.x) + 3, gy - b - o.h - 2, o.w - 6, 2); });
+  MINI.obs.forEach((o) => {
+    if (o.bird) { const x = Math.round(o.x), y = gy - o.base - o.h, up = Math.sin(MINI.t * 18) > 0; g.fillStyle = "#5E676B"; g.fillRect(x + 2, y + 2, 5, 2); g.fillStyle = "#2B2E2F"; g.fillRect(x, y + (up ? 0 : 3), 3, 1); g.fillRect(x + 6, y + (up ? 0 : 3), 3, 1); g.fillStyle = "#C94F2E"; g.fillRect(x + 4, y + 4, 1, 1); return; }
+    if (o.cart) { const x = Math.round(o.x); g.fillStyle = "#8E979B"; g.fillRect(x, gy - 5, o.w, 2); g.fillRect(x + o.w - 2, gy - o.h - 3, 2, o.h + 1); g.fillStyle = "#C9B48D"; g.fillRect(x + 2, gy - 9, 8, 4); g.fillStyle = "#2E3F66"; g.fillRect(x + 10, gy - 8, 6, 3); g.fillStyle = "#2B2E2F"; g.fillRect(x + 2, gy - 2, 3, 2); g.fillRect(x + o.w - 6, gy - 2, 3, 2); return; }
+    if (o.stack) { const x = Math.round(o.x); g.fillStyle = o.c; g.fillRect(x, gy - 10, o.w, 10); g.fillStyle = "#C9B48D"; g.fillRect(x + 1, gy - 20, o.w - 2, 10); g.fillStyle = "#2B2E2F"; g.fillRect(x + 3, gy - 22, o.w - 6, 2); g.fillRect(x, gy - 11, o.w, 1); return; }
+    if (o.tack) { const x = Math.round(o.x); g.fillStyle = "#9AA3A8"; g.fillRect(x, gy - 2, 6, 2); g.fillStyle = "#D7DDE0"; g.fillRect(x + 1, gy - 2, 1, 1); g.fillStyle = "#C94F2E"; g.fillRect(x + 2, gy - 4, 2, 2); g.fillStyle = "#E7EBED"; g.fillRect(x + 2, gy - 5, 2, 1); return; } const b = o.base || 0; g.fillStyle = o.c; g.fillRect(Math.round(o.x), gy - b - o.h, o.w, o.h); g.fillStyle = "#2B2E2F"; g.fillRect(Math.round(o.x) + 3, gy - b - o.h - 2, o.w - 6, 2); });
   MINI.coins.forEach((c) => { const cy = gy - c.h, wv = Math.max(1, Math.round(Math.abs(Math.sin(MINI.t * 6 + c.x * 0.2)) * (c.big ? 6 : 4))), x0 = Math.round(c.x - wv / 2), r = c.big ? 4 : 3; g.fillStyle = "#C99A10"; g.fillRect(x0, Math.round(cy - r), wv, r * 2); g.fillStyle = c.big ? "#FFD84A" : "#F5C518"; g.fillRect(x0 + (wv > 2 ? 1 : 0), Math.round(cy - r + 1), Math.max(1, wv - 2), r * 2 - 2); if (wv > 2) { g.fillStyle = "#FFF3B0"; g.fillRect(x0 + 1, Math.round(cy - r + 1), 1, 2); } });
   g.font = "8px Galmuri11, monospace"; g.textBaseline = "top";
   MINI.pop.forEach((p) => { g.fillStyle = "#B88A00"; g.fillText(`+${p.v}`, Math.round(p.x), Math.round(p.y)); });
@@ -1945,7 +1964,7 @@ function miniDraw() {
   g.fillStyle = "#F3ECDD"; g.fillRect(16, py + 2, 12, 9); g.fillRect(17, py + 1, 10, 11); g.fillRect(18, py, 8, 12);
   g.fillStyle = "#FFFFFF"; g.fillRect(19, py + 4, 3, 3); g.fillRect(23, py + 4, 3, 3); g.fillStyle = "#111"; g.fillRect(20, py + 5, 2, 2); g.fillRect(24, py + 5, 2, 2);
   // score and the scene name live in crisp HTML over the pixel canvas
-  $("ms-score").textContent = `점수 ${MINI.score}`; $("ms-coin").textContent = `코인 ${MINI.got}`; $("ms-best").textContent = `최고 ${G.mini.best}`;
+  $("ms-score").textContent = `점수 ${MINI.score}`; $("ms-coin").textContent = `코인 ${MINI.got}`; const rv = nextRival(), bt = !rv ? `최고 ${G.mini.best}` : rv.r ? `${rv.idx + 1}등 ${String(rv.r.nick || "여행자").slice(0, 5)} · 코인 ${rv.r.coins}` : rv.n ? "지금 1등!" : "첫 순위에 도전!"; if ($("ms-best").textContent !== bt) $("ms-best").textContent = bt;
   const sb = $("ms-stage"), show = MINI.banner > 0; if (sb.hidden === show) sb.hidden = !show; if (show) { const nm = `${i0 + 1}구간 · ${MSTAGE[i0 % MSTAGE.length].name}`; if (sb.textContent !== nm) sb.textContent = nm; sb.style.opacity = Math.min(1, MINI.banner * 1.5); }
 }
 function botTurn(r, a, dt, k = 3) { const da = ((a - r.ry + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI; r.ry += da * Math.min(1, dt * k); }
@@ -2107,8 +2126,10 @@ function stepRobots(dt) {
 }
 // after you pick up your suitcase, one PAUSE comes by and offers to carry it
 function startCarryOffer() {
-  const p = G.p, free = G.robots.filter((r) => !r.rider && !["follow", "nudge", "waiting", "npcFollow"].includes(r.state));
-  if (!free.length) return;
+  // a seat offer still open when I pick my bag: that robot switches to offering to carry it
+  if (G.offer) resolveOffer("bag_picked");
+  const p = G.p, free = G.robots.filter((r) => !r.rider && !["follow", "npcFollow"].includes(r.state));
+  if (!free.length) { log("carry_offer_no_robot"); if (G.carrying && !G.bagOn) G.carryOfferAt = G.t + 0.6; return; }
   const cost = reachCost;
   const r = free.sort((a, b) => cost(a) - cost(b))[0]; r.route = null; summonNear(r);
   const f = fwd(); r.side = (r.x - p.x) * -f.z + (r.z - p.z) * f.x >= 0 ? 1 : -1; r.npcTarget = null; r.state = "carryOffer"; r.blockT = 0;
@@ -2119,7 +2140,7 @@ function stepCarryOffer() {
   const o = G.carryOffer; if (!o) return; const p = G.p, r = o.robot;
   if (o.response === "approaching") {
     if (G.t - o.startAt > 9) { resolveCarry("not_reached"); return; }
-    if (Math.hypot(r.tx - r.x, r.tz - r.z) < 0.5 || (Math.hypot(r.x - p.x, r.z - p.z) < 1.4 && G.t - o.startAt > 1.3 && seenBy(r)) || (Math.hypot(r.x - p.x, r.z - p.z) < 1.9 && G.t - o.startAt > 2.1) || (Math.hypot(r.x - p.x, r.z - p.z) < 2.8 && G.t - o.startAt > 2.8) || (Math.hypot(r.x - p.x, r.z - p.z) < 2.4 && G.t - o.startAt > 4.5)) { SND.tap(); SND.pop(); o.response = "pending"; o.shownAt = G.t; G.shake = 0.6; G.shakeSide = r.side; log("carry_offer_tap"); }
+    if (Math.hypot(r.tx - r.x, r.tz - r.z) < 0.5 || (Math.hypot(r.x - p.x, r.z - p.z) < 1.4 && G.t - o.startAt > 1.3 && seenBy(r)) || (Math.hypot(r.x - p.x, r.z - p.z) < 1.9 && G.t - o.startAt > 2.1) || (Math.hypot(r.x - p.x, r.z - p.z) < 2.2 && G.t - o.startAt > 2.9) || (Math.hypot(r.x - p.x, r.z - p.z) < 2.4 && G.t - o.startAt > 4.5)) { SND.tap(); SND.pop(); o.response = "pending"; o.shownAt = G.t; G.shake = 0.6; G.shakeSide = r.side; log("carry_offer_tap"); }
     return;
   }
   if (Math.hypot(r.x - p.x, r.z - p.z) > 3) resolveCarry("walked_away");
@@ -2135,6 +2156,9 @@ function resolveCarry(res) {
 /* ---- the tap: a PAUSE comes beside you after a long stand ---- */
 function sideSpot(side, angles, rad) {
   const p = G.p, f = fwd(), rx = -f.z, rz = f.x;
+  // beside me first; if people fill both sides, the free space just behind me
+  const ok = (x, z) => !nearCar(x, z, 0.55) && !botStatic(x, z) && walkable(x, z, true) && !G.robots.some((o) => o.state !== "follow" && Math.hypot(o.x - x, o.z - z) < 0.6 && Math.hypot(o.tx - x, o.tz - z) > 0.3);
+  for (const rr of [rad, rad * 1.25]) for (const sd of [side, -side]) for (const deg of [...angles, 170, 180]) { const t = (deg * sd) * Math.PI / 180, x = p.x + (f.x * Math.cos(t) + rx * Math.sin(t)) * rr, z = p.z + (f.z * Math.cos(t) + rz * Math.sin(t)) * rr; if (ok(x, z)) return { x, z }; }
   for (const deg of angles) { const t = (deg * side) * Math.PI / 180, dx = f.x * Math.cos(t) + rx * Math.sin(t), dz = f.z * Math.cos(t) + rz * Math.sin(t), x = p.x + dx * rad, z = p.z + dz * rad; if (!nearCar(x, z, 0.55) && !botStatic(x, z) && walkable(x, z, true)) return { x, z }; }
   for (const deg of angles) { const t = (-deg * side) * Math.PI / 180, x = p.x + (f.x * Math.cos(t) + rx * Math.sin(t)) * rad, z = p.z + (f.z * Math.cos(t) + rz * Math.sin(t)) * rad; if (!nearCar(x, z, 0.55) && !botStatic(x, z) && walkable(x, z, true)) return { x, z }; }
   return { x: p.x - f.x * rad, z: p.z - f.z * rad };
@@ -2176,7 +2200,7 @@ function stepOffer(dt) {
   if (o.response === "approaching") {
     if (p.seat) { resolveOffer("sat_elsewhere"); return; }
     if (G.t - o.startAt > 30) { log("nudge_cancel", { n: o.n }); G.offer = null; startRetreat(r); G.nudgeCool = 8; return; }
-    if (Math.hypot(r.tx - r.x, r.tz - r.z) < 0.5 || (Math.hypot(r.x - p.x, r.z - p.z) < 1.4 && G.t - o.startAt > 1.3 && seenBy(r)) || (Math.hypot(r.x - p.x, r.z - p.z) < 1.9 && G.t - o.startAt > 2.1) || (Math.hypot(r.x - p.x, r.z - p.z) < 2.8 && G.t - o.startAt > 2.8) || (Math.hypot(r.x - p.x, r.z - p.z) < 2.4 && G.t - o.startAt > 4.5)) {
+    if (Math.hypot(r.tx - r.x, r.tz - r.z) < 0.5 || (Math.hypot(r.x - p.x, r.z - p.z) < 1.4 && G.t - o.startAt > 1.3 && seenBy(r)) || (Math.hypot(r.x - p.x, r.z - p.z) < 1.9 && G.t - o.startAt > 2.1) || (Math.hypot(r.x - p.x, r.z - p.z) < 2.2 && G.t - o.startAt > 2.9) || (Math.hypot(r.x - p.x, r.z - p.z) < 2.4 && G.t - o.startAt > 4.5)) {
       SND.tap(); SND.pop();
       o.response = "pending"; o.shownAt = G.t; r.state = "waiting";
       G.shake = 0.9; G.shakeSide = r.side; log("nudge_tap", { n: o.n });
