@@ -1854,7 +1854,7 @@ function miniStep(dt) {
   if (!MINI.run) return; G.mini.ms += dt * 1000; MINI.t += dt; MINI.runT = (MINI.runT || 0) + dt;
   // feet height y; land on the ground or on top of a floating belt while falling
   const prevY = MINI.y; MINI.vy -= 260 * dt; MINI.y += MINI.vy * dt;
-  let floor = 0; if (MINI.vy <= 0) MINI.plats.forEach((pl) => { if (pl.x < 27 && pl.x + pl.w > 17 && prevY >= pl.h - 0.6 && MINI.y <= pl.h) floor = Math.max(floor, pl.h); });
+  let floor = 0; if (MINI.vy <= 0) MINI.plats.forEach((pl) => { if (pl.x < 27 && pl.x + pl.w > 17 && prevY >= pl.h - 1.5 && MINI.y <= pl.h) floor = Math.max(floor, pl.h); });
   if (MINI.y <= floor) { if (MINI.air && floor > 0 && prevY > floor + 0.5) SND.click(); MINI.y = floor; MINI.vy = 0; MINI.air = 0; MINI.onPlat = floor > 0; }
   else if (!MINI.air && MINI.y < prevY - 0.01) MINI.air = 1; // ran off the edge of a belt: one jump left in the air
   MINI.spawn -= dt;
@@ -1862,12 +1862,13 @@ function miniStep(dt) {
     const lvl = Math.floor(MINI.dist / STAGE_LEN), k = Math.random(), x0 = MINI.w + 4, bag = () => ({ w: pick([8, 10, 12]), h: pick([8, 11, 14]), c: pick(["#2E3F66", "#C9B48D", "#8E979B", "#A33A35"]) });
     // floating baggage belts show up more often the further you run
     if (k < Math.min(0.66, 0.42 + lvl * 0.08)) {
-      const high = Math.random() < 0.35 + lvl * 0.05, pl = { x: x0, w: pick([34, 42, 50]), h: high ? pick([26, 30]) : pick([14, 16]) }; MINI.plats.push(pl);
+      // heights match the jump: a single jump tops out near 16, a double jump near 30
+      const high = Math.random() < 0.35 + lvl * 0.05, pl = { x: x0, w: pick([34, 42, 50]), h: high ? pick([20, 23]) : pick([10, 12]) }; MINI.plats.push(pl);
       for (let cx = pl.x + 6; cx < pl.x + pl.w - 3; cx += 7) MINI.coins.push({ x: cx, h: pl.h + 7 });
-      if (pl.w >= 42 && Math.random() < 0.4 + lvl * 0.08) { const o = bag(); o.h = Math.min(o.h, 10); MINI.obs.push({ ...o, x: pl.x + pl.w - o.w - 6, base: pl.h }); }
-      if (Math.random() < 0.55) { const o = bag(); MINI.obs.push({ ...o, x: pl.x + pl.w * 0.45 }); }
+      // the belt tops stay clear; under a belt only small floor tacks
+      if (Math.random() < 0.5 + lvl * 0.06) { const n = pl.w >= 42 ? 2 : 1; for (let t = 0; t < n; t++) MINI.obs.push({ x: pl.x + 10 + t * 8, w: 6, h: 4, tack: true }); }
       // a second, higher belt right after a low one (a staircase)
-      if (!high && lvl >= 1 && Math.random() < 0.45) { const p2 = { x: pl.x + pl.w + 10, w: 34, h: pl.h + 13 }; MINI.plats.push(p2); MINI.coins.push({ x: p2.x + p2.w / 2, h: p2.h + 12, big: true }); }
+      if (!high && lvl >= 1 && Math.random() < 0.45) { const p2 = { x: pl.x + pl.w + 10, w: 34, h: pl.h + 11 }; MINI.plats.push(p2); MINI.coins.push({ x: p2.x + p2.w / 2, h: p2.h + 12, big: true }); }
       MINI.spawn = (pl.w + 30) / (46 + Math.min(40, MINI.score * 1.5)) + rand(0.5, 1.0);
     } else {
       const o = { x: x0, ...bag() }; MINI.obs.push(o);
@@ -1920,7 +1921,7 @@ function miniDraw() {
     g.fillStyle = nightK > 0.5 ? "#1A1D22" : "#5E676B"; g.fillRect(x + 4, top + 5, 2, pl.h - 5); g.fillRect(x + pl.w - 6, top + 5, 2, pl.h - 5);
     g.fillStyle = "#2B2E2F"; g.fillRect(x, top, pl.w, 5); g.fillStyle = "#4A5154"; for (let sx = x + 1 + Math.round((MINI.t * 20) % 5); sx < x + pl.w - 1; sx += 5) g.fillRect(sx, top + 1, 2, 2);
     g.fillStyle = "#F2C230"; g.fillRect(x, top + 4, pl.w, 1); });
-  MINI.obs.forEach((o) => { const b = o.base || 0; g.fillStyle = o.c; g.fillRect(Math.round(o.x), gy - b - o.h, o.w, o.h); g.fillStyle = "#2B2E2F"; g.fillRect(Math.round(o.x) + 3, gy - b - o.h - 2, o.w - 6, 2); });
+  MINI.obs.forEach((o) => { if (o.tack) { const x = Math.round(o.x); g.fillStyle = "#9AA3A8"; g.fillRect(x, gy - 2, 6, 2); g.fillStyle = "#D7DDE0"; g.fillRect(x + 1, gy - 2, 1, 1); g.fillStyle = "#C94F2E"; g.fillRect(x + 2, gy - 4, 2, 2); g.fillStyle = "#E7EBED"; g.fillRect(x + 2, gy - 5, 2, 1); return; } const b = o.base || 0; g.fillStyle = o.c; g.fillRect(Math.round(o.x), gy - b - o.h, o.w, o.h); g.fillStyle = "#2B2E2F"; g.fillRect(Math.round(o.x) + 3, gy - b - o.h - 2, o.w - 6, 2); });
   MINI.coins.forEach((c) => { const cy = gy - c.h, wv = Math.max(1, Math.round(Math.abs(Math.sin(MINI.t * 6 + c.x * 0.2)) * (c.big ? 6 : 4))), x0 = Math.round(c.x - wv / 2), r = c.big ? 4 : 3; g.fillStyle = "#C99A10"; g.fillRect(x0, Math.round(cy - r), wv, r * 2); g.fillStyle = c.big ? "#FFD84A" : "#F5C518"; g.fillRect(x0 + (wv > 2 ? 1 : 0), Math.round(cy - r + 1), Math.max(1, wv - 2), r * 2 - 2); if (wv > 2) { g.fillStyle = "#FFF3B0"; g.fillRect(x0 + 1, Math.round(cy - r + 1), 1, 2); } });
   g.font = "8px Galmuri11, monospace"; g.textBaseline = "top";
   MINI.pop.forEach((p) => { g.fillStyle = "#B88A00"; g.fillText(`+${p.v}`, Math.round(p.x), Math.round(p.y)); });
