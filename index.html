@@ -200,15 +200,54 @@ kbd { font-family: var(--pixel); font-size: 12px; background: #FFFFFF; color: #4
 .plink { font-size: 12px; color: #8A8C84; letter-spacing: .06em; }
 
 
-.mini { position: absolute; left: 50%; transform: translateX(-50%); bottom: 96px; width: 384px; padding: 14px 16px 12px; background: #FFFDF6; pointer-events: auto;
-  box-shadow: 0 -4px 0 0 var(--o), 0 4px 0 0 var(--o), -4px 0 0 0 var(--o), 4px 0 0 0 var(--o), 8px 8px 0 0 var(--sh), inset -4px -4px 0 0 var(--g2); }
-.mini.alert { background: #FFE680; box-shadow: 0 -4px 0 0 #C94F2E, 0 4px 0 0 #C94F2E, -4px 0 0 0 #C94F2E, 4px 0 0 0 #C94F2E, 8px 8px 0 0 var(--sh); }
-.mini-note { margin: -4px -4px 12px; padding: 8px 12px; background: #FFEFA8; font-size: 14px; font-weight: 700; letter-spacing: .04em; text-align: center; box-shadow: 0 0 0 3px var(--o), inset -3px -3px 0 0 #E2C15A; }
-#frame.touch-on .mini-note { font-size: 20px; padding: 12px 14px; }
-.mini.alert .mini-note { background: #FFFFFF; }
-.mini-t { font-size: 13px; letter-spacing: .14em; margin: 0 0 8px; font-weight: 700; }
-.mini canvas { width: 352px; height: 188px; display: block; image-rendering: pixelated; cursor: pointer; box-shadow: 0 0 0 3px var(--o); }
-.mini-h { font-size: 11px; color: #7A7D77; margin: 8px 0 0; letter-spacing: .04em; }
+/* the participant's own phone, linked to PAUSE by NFC, carries the mini-game */
+.mphone { position: absolute; left: 50%; top: 50%; width: 332px; height: 660px; transform: translate(-50%, -50%); pointer-events: auto; padding: 16px 12px 22px; background: #2B2E2F; border-radius: 34px;
+  box-shadow: 0 0 0 4px var(--o), 10px 10px 0 0 var(--sh), inset 0 0 0 3px #4A4F51; transition: transform .45s cubic-bezier(.2,.9,.3,1.1), opacity .3s; }
+.mphone.in-off { transform: translate(-50%, 40%); opacity: 0; }
+.mp-notch { position: absolute; top: 7px; left: 50%; width: 70px; height: 6px; margin-left: -35px; background: #151718; border-radius: 3px; }
+.mp-screen { position: relative; height: 100%; background: #FFFDF6; border-radius: 22px; overflow: hidden; display: flex; flex-direction: column; box-shadow: inset 0 0 0 3px #151718; }
+.mp-status { display: flex; justify-content: space-between; padding: 10px 18px 4px; font-size: 11px; font-weight: 700; letter-spacing: .06em; color: #454949; }
+.mp-status .link { color: #3D7BD8; }
+.mphone .mini-note { margin: 4px 12px 8px; padding: 8px 10px; background: #FFEFA8; font-size: 13px; font-weight: 700; letter-spacing: .02em; text-align: center; line-height: 1.45; box-shadow: 0 0 0 3px var(--o), inset -3px -3px 0 0 #E2C15A; }
+.mphone.alert .mp-screen { background: #FFE680; }
+.mphone.alert .mini-note { background: #FFFFFF; box-shadow: 0 0 0 3px #C94F2E; color: #C94F2E; }
+.mp-view { flex: 1; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 8px 18px 18px; text-align: center; }
+.mp-view.on { display: flex; }
+.mp-view[data-v="play"] { justify-content: flex-start; gap: 8px; padding: 0 10px 10px; }
+.mp-app { font-size: 12px; letter-spacing: .2em; color: #8A8C84; margin: 0; }
+.mp-big { font-size: 19px; font-weight: 700; line-height: 1.5; margin: 0; color: #2B2E2F; }
+.mp-small { font-size: 12px; color: #7A7D77; margin: 0; line-height: 1.55; }
+.mp-view .pbtn { width: 100%; }
+.nfc { position: relative; width: 120px; height: 120px; display: grid; place-items: center; }
+.nfc i { position: absolute; inset: 0; border-radius: 50%; border: 3px solid #3D7BD8; opacity: 0; }
+.nfc.go i { animation: nfcw 1.4s ease-out infinite; } .nfc.go i:nth-child(2) { animation-delay: .45s; } .nfc.go i:nth-child(3) { animation-delay: .9s; }
+@keyframes nfcw { 0% { transform: scale(.35); opacity: .9; } 100% { transform: scale(1.15); opacity: 0; } }
+.nfc b { position: relative; width: 62px; height: 62px; display: grid; place-items: center; background: #3D7BD8; color: #fff; font-size: 15px; letter-spacing: .08em; box-shadow: 0 0 0 3px var(--o); }
+.nfc.done b { background: #3E9A5B; }
+.mp-score { width: 100%; display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; letter-spacing: .04em; color: #2B2E2F; padding: 2px 2px 0; }
+.mp-score #ms-coin { color: #9A7414; } .mp-score #ms-best { color: #7A7D77; }
+.mp-cvwrap { position: relative; width: 100%; }
+.mp-stage { position: absolute; left: 50%; top: 26%; transform: translateX(-50%); white-space: nowrap; padding: 6px 12px; background: rgb(255 253 246 / .94); font-size: 13px; letter-spacing: .08em; box-shadow: 0 0 0 3px var(--o); transition: opacity .3s; }
+#frame.portrait .mp-score { font-size: 21px; } #frame.portrait .mp-stage { font-size: 21px; padding: 10px 18px; }
+.mphone canvas { width: 100%; aspect-ratio: 100 / 165; display: block; image-rendering: pixelated; cursor: pointer; box-shadow: 0 0 0 3px var(--o); }
+.mini-h { font-size: 11px; color: #7A7D77; margin: 2px 0 0; letter-spacing: .02em; line-height: 1.5; }
+.mp-home { position: absolute; bottom: 8px; left: 50%; width: 90px; height: 5px; margin-left: -45px; background: #5A5F61; border-radius: 3px; }
+#frame.portrait .mphone { width: 540px; height: 1080px; top: 46%; padding: 24px 18px 32px; border-radius: 52px; }
+#frame.portrait .mp-screen { border-radius: 34px; } #frame.portrait .mp-status { font-size: 18px; padding: 16px 28px 6px; }
+#frame.portrait .mphone .mini-note { font-size: 21px; margin: 6px 18px 12px; padding: 12px 14px; }
+#frame.portrait .mp-app { font-size: 19px; } #frame.portrait .mp-big { font-size: 31px; } #frame.portrait .mp-small, #frame.portrait .mini-h { font-size: 19px; }
+#frame.portrait .mp-view { gap: 22px; padding: 10px 30px 28px; } #frame.portrait .mp-view[data-v="play"] { padding: 0 18px 16px; gap: 12px; }
+#frame.portrait .mp-view .pbtn { font-size: 26px; padding: 22px 16px; }
+#frame.portrait .nfc { width: 190px; height: 190px; } #frame.portrait .nfc b { width: 98px; height: 98px; font-size: 24px; }
+#frame.portrait .mp-notch { width: 110px; margin-left: -55px; height: 9px; top: 10px; } #frame.portrait .mp-home { width: 140px; margin-left: -70px; height: 7px; bottom: 12px; }
+/* mmWave: PAUSE senses that someone sat down */
+.sense { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 14px 22px; pointer-events: none; transition: opacity .4s; }
+.sense .wv { position: relative; width: 34px; height: 34px; }
+.sense .wv i { position: absolute; left: 0; bottom: 0; border: 3px solid #3D7BD8; border-left-color: transparent; border-bottom-color: transparent; border-radius: 0 100% 0 0; animation: mmw 1.1s ease-out infinite; opacity: 0; }
+.sense .wv i:nth-child(1) { width: 12px; height: 12px; } .sense .wv i:nth-child(2) { width: 22px; height: 22px; animation-delay: .25s; } .sense .wv i:nth-child(3) { width: 32px; height: 32px; animation-delay: .5s; }
+@keyframes mmw { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: .1; } }
+.sense b { font-size: 16px; letter-spacing: .04em; } .sense span { display: block; font-size: 11px; color: #8A8C84; letter-spacing: .14em; margin-top: 3px; }
+#frame.portrait .sense { top: 12%; padding: 20px 28px; } #frame.portrait .sense b { font-size: 26px; } #frame.portrait .sense span { font-size: 17px; }
 .nudge-pop { position: absolute; left: 50%; top: 56%; transform: translate(-50%, -50%); width: 560px; text-align: center; padding: 24px 28px 22px; pointer-events: auto; display: grid; gap: 12px; }
 .nudge-pop .ptitle { font-size: 18px; } .nudge-pop .np-btns { justify-content: center; }
 #frame.touch-on .nudge-pop { width: 760px; top: 46%; } #frame.touch-on .nudge-pop .ptitle { font-size: 26px; } #frame.touch-on .nudge-pop .ptext { font-size: 20px; } #frame.touch-on .nudge-pop .pbtn { font-size: 22px; padding: 16px 26px; } #frame.touch-on .nudge-pop kbd { display: none; }
@@ -444,7 +483,15 @@ th { background: var(--tint); font-weight: 700; }
           <div class="bl">↑ 걷기 · Shift 빠르게 · ←→ 돌기 · Space 앉기 · E 캐리어 확인 · P 휴대폰 · V 시점</div>
           <div class="pcard mybag-float" id="mybag-float" hidden><canvas id="float-icon" width="192" height="228"></canvas><b>내 캐리어</b><span id="float-name"></span></div>
           <div class="pcard guide" id="guide" hidden><p class="ptitle">[ 수하물 수취장에 들어왔습니다 ]</p><p class="ptext">내 짐이 나오는 수취대 번호는 휴대폰에서 확인하세요.<br><kbd>P</kbd> 키를 누르면 휴대폰을 볼 수 있습니다.</p></div>
-          <div class="mini" id="mini" hidden><p class="mini-note" id="mini-note"></p><p class="mini-t">[ 쉬는 동안 한 판 ]</p><canvas id="mini-cv" width="120" height="64"></canvas><p class="mini-h">클릭 또는 <kbd>J</kbd> 점프 · 2번 누르면 2단 점프 · 코인 모으기</p></div>
+          <div class="pcard sense" id="sense" hidden><div class="wv"><i></i><i></i><i></i></div><div><b>PAUSE가 착석을 감지했습니다</b><span>mmWave 센서</span></div></div>
+          <div class="mphone" id="mini" hidden><div class="mp-notch"></div><div class="mp-screen">
+            <div class="mp-status"><span>내 휴대폰</span><span class="link" id="mp-link"></span></div>
+            <p class="mini-note" id="mini-note" hidden></p>
+            <div class="mp-view" data-v="nfc"><p class="mp-app">PAUSE</p><div class="nfc" id="nfc"><i></i><i></i><i></i><b>NFC</b></div><p class="mp-big" id="nfc-t">PAUSE 하단에<br>휴대폰을 대 주세요</p><p class="mp-small" id="nfc-s">PAUSE의 NFC 태그를 찾고 있습니다</p></div>
+            <div class="mp-view" data-v="ask"><p class="mp-app">PAUSE 미니게임</p><p class="mp-big">캐리어를 기다리는 동안<br>미니게임을 해 볼까요?</p><p class="mp-small">캐리어가 나오면 PAUSE가<br>눈을 깜빡여 알려 드립니다</p><button class="pbtn" id="mini-yes">게임하기</button><button class="pbtn white" id="mini-no">괜찮아요</button></div>
+            <div class="mp-view" data-v="idle"><p class="mp-app">PAUSE</p><p class="mp-big">편하게 쉬세요</p><p class="mp-small">캐리어가 나오면 PAUSE가<br>눈을 깜빡여 알려 드립니다</p><button class="pbtn white" id="mini-again">미니게임 하기</button></div>
+            <div class="mp-view" data-v="play"><div class="mp-score"><span id="ms-score">점수 0</span><span id="ms-coin">코인 0</span><span id="ms-best">최고 0</span></div><div class="mp-cvwrap"><canvas id="mini-cv" width="100" height="165"></canvas><b class="mp-stage" id="ms-stage" hidden></b></div><p class="mini-h">클릭 또는 <kbd>J</kbd> 점프 · 2번 누르면 2단 점프</p></div>
+          </div><div class="mp-home"></div></div>
           <div class="flash" id="flash"></div>
           <div class="pcard nudge-pop" id="carry-pop" hidden>
             <p class="ptitle">PAUSE가 캐리어를 실어 주겠다고 합니다</p>
@@ -582,7 +629,7 @@ const HOSTED_OUTSIDE = !(window.claude && window.claude.use);
 const FAST = /[?&]fast\b/.test(location.search);
 // Google Apps Script web app that appends each submitted result to the researcher's sheet (set after deployment)
 const COLLECT_URL = "https://script.google.com/macros/s/AKfycbwH2jqt_VSt30kxHoOXLoZPk6VJOK26eVJ3IVuBZi9fmHhaETjHOhqRCO2Ulr4TyPYvUQ/exec";
-if (FAST) { window.__pz = () => G; window.__px = () => ({ EXIT, MY, S }); }
+if (FAST) { window.__pz = () => G; window.__px = () => ({ EXIT, MY, S }); window.__pm = () => MINI; }
 
 /* ================= forms ================= */
 const AGES = ["20대", "30대", "40대", "50대", "60대 이상"];
@@ -623,7 +670,7 @@ function fitFrame() {
 }
 window.addEventListener("resize", fitFrame); fitFrame();
 const TOUCH = matchMedia("(pointer: coarse)").matches;
-if (TOUCH) { $("mini").querySelector(".mini-h").textContent = "게임 화면을 누르면 점프 · 두 번 누르면 2단 점프 · 코인 모으기"; $("guide").querySelector(".ptext").innerHTML = "내 짐이 나오는 수취대 번호는 휴대폰에서 확인하세요.<br>왼쪽 [휴대폰] 버튼을 누르면 볼 수 있습니다."; $("frame").classList.add("touch-on"); document.querySelector(".hud .bl").textContent = "▲ 길게 누르면 빨라집니다 · ◀ ▶ 방향 돌리기 · 화면을 끌어 둘러보기"; }
+if (TOUCH) { $("mini").querySelector(".mini-h").innerHTML = "화면을 누르면 점프 · 두 번 누르면 2단 점프"; $("guide").querySelector(".ptext").innerHTML = "내 짐이 나오는 수취대 번호는 휴대폰에서 확인하세요.<br>왼쪽 [휴대폰] 버튼을 누르면 볼 수 있습니다."; $("frame").classList.add("touch-on"); document.querySelector(".hud .bl").textContent = "▲ 길게 누르면 빨라집니다 · ◀ ▶ 방향 돌리기 · 화면을 끌어 둘러보기"; }
 /* ================= sound: soft, synthesized on the fly (no files) ================= */
 const SND = (() => {
   let ac = null, master = null, ambG = null, on = true, ambLevel = 0, nextChime = 0, musicLevel = 0;
@@ -1354,7 +1401,7 @@ window.addEventListener("keydown", (e) => {
   if (e.code === "KeyE" && !e.repeat) actPick();
   if (e.code === "KeyP" && !e.repeat) actPhone();
   if (e.code === "KeyV" && !e.repeat) { G.inp.views++; setView(G.p.view === 1 ? 3 : 1); }
-  if (e.code === "KeyJ" && !e.repeat) miniJump();
+  if (e.code === "KeyJ" && !e.repeat) { if (MINI.phase === "ask" || MINI.phase === "idle") $(MINI.phase === "ask" ? "mini-yes" : "mini-again").click(); else miniJump(); }
   if (e.code === "Escape" && G.offer?.response === "pending") resolveOffer("declined");
   if (e.code === "Escape" && G.carryOffer?.response === "pending" && !G.bagOn) resolveCarry("declined");
 });
@@ -1408,7 +1455,7 @@ function actSit() {
     const offered = o && o.robot === r && o.response === "pending";
     if (offered) resolveOffer("accept");
     G.pauseSits++; if (G.firstPauseSitAt === null) G.firstPauseSitAt = G.t;
-    r.rider = "me"; r.state = "ridden"; r.npcTarget = null; p.seat = s; p.x = r.x; p.z = r.z; p.pitch = -0.5;
+    r.rider = "me"; r.state = "ridden"; r.npcTarget = null; r.sitAt = G.t; p.seat = s; p.x = r.x; p.z = r.z; p.pitch = -0.5;
     p.prevView = p.view; setView(1); miniOpen(); SND.sit();
     setPosture("pause"); log("sit", { seat: "pause", offered, robot: r.id });
   }
@@ -1490,7 +1537,7 @@ function loop(now) {
   if (!G || !G.running) return;
   let dt = Math.min(0.1, (now - G.last) / 1000); G.last = now;
   if (document.hidden || G.frozen) dt = 0;
-  if (FAST) dt *= 6;
+  if (FAST) dt *= window.__pzRate ?? 6;
   if (dt > 0) step(dt);
   render(now / 1000);
   requestAnimationFrame(loop);
@@ -1755,20 +1802,60 @@ function stepDoors(dt) {
   stepDoor(W.startDoor, dt, (G.running && Math.hypot(G.p.x - W.startDoor.x, G.p.z - W.startDoor.z) < 5) || near(W.startDoor, 3.5));
   W.exitDoors.forEach((d) => stepDoor(d, dt, (d === W.exitDoor && G.carrying && Math.hypot(G.p.x - d.x, G.p.z - d.z) < 3.5) || G.people.some((q) => q.leaving && Math.hypot(q.x - d.x, q.z - d.z) < 3.5)));
 }
-/* ---- mini arcade on PAUSE: hop over the suitcases ---- */
-const MINI = { w: 120, h: 64, y: 0, vy: 0, obs: [], coins: [], got: 0, pop: [], t: 0, score: 0, run: false, spawn: 0 };
-function miniOpen() { $("mini-note").textContent = `${state.nick || "여행자"}님의 캐리어가 나오면 알려 드릴게요`; $("mini").hidden = false; MINI.y = 0; MINI.vy = 0; MINI.obs = []; MINI.coins = []; MINI.pop = []; MINI.got = 0; MINI.score = 0; MINI.run = true; MINI.runT = 0; MINI.spawn = 1.2; G.mini.plays++; log("mini_open"); miniDraw(); }
-function miniClose() { if ($("mini").hidden) return; G.mini.bestRun = Math.max(G.mini.bestRun || 0, MINI.runT || 0); $("mini").hidden = true; MINI.run = false; log("mini_close", { score: MINI.score }); }
-function miniJump() { if (!MINI.run || $("mini").hidden) return; if (MINI.y <= 0.01) { MINI.vy = 92; MINI.air = 1; G.mini.jumps++; SND.jump(); } else if (MINI.air === 1) { MINI.vy = 84; MINI.air = 2; G.mini.jumps++; G.mini.doubles = (G.mini.doubles || 0) + 1; SND.jump2(); } }
+/* ---- sitting on PAUSE: mmWave senses the seat → phone taps the NFC tag → mobile mini-game ---- */
+const MINI = { w: 100, h: 165, y: 0, vy: 0, obs: [], coins: [], got: 0, pop: [], t: 0, score: 0, run: false, spawn: 0, phase: "off", pt: 0, dist: 0, deco: [] };
+const MP_T = { phone: 1.6, link: 2.7, done: 3.9, ask: 4.7 };
+function mpView(v) { document.querySelectorAll("#mini .mp-view").forEach((el) => el.classList.toggle("on", el.dataset.v === v)); $("mini-note").hidden = v === "nfc"; }
+function miniOpen() {
+  $("mini-note").textContent = `${state.nick || "여행자"}님의 캐리어가 나오면 알려 드릴게요`;
+  MINI.phase = "sense"; MINI.pt = 0; MINI.run = false; $("sense").hidden = false; $("sense").style.opacity = 1; $("mini").hidden = true;
+  $("mp-link").textContent = ""; $("nfc").className = "nfc"; $("nfc").querySelector("b").textContent = "NFC";
+  $("nfc-t").innerHTML = "PAUSE 하단에<br>휴대폰을 대 주세요"; $("nfc-s").textContent = "PAUSE의 NFC 태그를 찾고 있습니다"; mpView("nfc");
+  log("mini_sense");
+}
+function miniClose() {
+  $("sense").hidden = true;
+  if (MINI.phase === "off") return; MINI.phase = "off";
+  G.mini.bestRun = Math.max(G.mini.bestRun || 0, MINI.runT || 0); $("mini").hidden = true; MINI.run = false; log("mini_close", { score: MINI.score });
+}
+function miniPhase(dt) {
+  MINI.pt += dt; const t = MINI.pt;
+  if (MINI.phase === "sense" && t >= MP_T.phone) { MINI.phase = "nfc"; const m = $("mini"); m.classList.add("in-off"); m.hidden = false; requestAnimationFrame(() => requestAnimationFrame(() => m.classList.remove("in-off"))); $("nfc").classList.add("go"); }
+  if (MINI.phase === "nfc" && t >= MP_T.link) { MINI.phase = "link"; $("sense").style.opacity = 0; $("nfc-t").innerHTML = "연결하는 중…"; $("nfc-s").textContent = "NFC로 PAUSE와 연결하고 있습니다"; SND.click(); }
+  if (MINI.phase === "link" && t >= MP_T.done) { MINI.phase = "linked"; $("sense").hidden = true; $("nfc").className = "nfc done"; $("nfc").querySelector("b").textContent = "✓"; $("nfc-t").innerHTML = "연결되었습니다"; $("nfc-s").textContent = "미니게임을 여는 중입니다"; $("mp-link").textContent = "● PAUSE 연결됨"; SND.coin(); log("nfc_link"); }
+  if (MINI.phase === "linked" && t >= MP_T.ask) { MINI.phase = "ask"; mpView("ask"); G.mini.offers = (G.mini.offers || 0) + 1; log("mini_offer"); }
+}
+function miniPlay() {
+  if (MINI.phase !== "ask" && MINI.phase !== "idle") return;
+  MINI.phase = "play"; mpView("play"); MINI.y = 0; MINI.vy = 0; MINI.obs = []; MINI.coins = []; MINI.pop = []; MINI.got = 0; MINI.score = 0; MINI.run = true; MINI.runT = 0; MINI.spawn = 1.2; MINI.dist = 0; MINI.stage = 0; MINI.banner = 1.6;
+  G.mini.plays++; log("mini_open"); miniDraw();
+}
+$("mini-yes").addEventListener("click", (e) => { e.stopPropagation(); G.mini.accepts = (G.mini.accepts || 0) + 1; log("mini_accept"); SND.pop(); miniPlay(); });
+$("mini-no").addEventListener("click", (e) => { e.stopPropagation(); if (MINI.phase !== "ask") return; G.mini.declines = (G.mini.declines || 0) + 1; log("mini_decline"); MINI.phase = "idle"; mpView("idle"); });
+$("mini-again").addEventListener("click", (e) => { e.stopPropagation(); log("mini_accept", { again: true }); miniPlay(); });
+function miniJump() { if (!MINI.run || MINI.phase !== "play") return; if (MINI.y <= 0.01) { MINI.vy = 92; MINI.air = 1; G.mini.jumps++; SND.jump(); } else if (MINI.air === 1) { MINI.vy = 84; MINI.air = 2; G.mini.jumps++; G.mini.doubles = (G.mini.doubles || 0) + 1; SND.jump2(); } }
 $("mini-cv").addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); miniJump(); });
-$("stage").addEventListener("pointerdown", (e) => { if (TOUCH && !$("mini").hidden && !e.target.closest("button")) { e.preventDefault(); miniJump(); } }, true);
+$("stage").addEventListener("pointerdown", (e) => { if (TOUCH && MINI.phase === "play" && !e.target.closest("button")) { e.preventDefault(); miniJump(); } }, true);
+// the run passes through the airport day: morning runway → afternoon → sunset → night → dawn, then round again
+const MSTAGE = [
+  { name: "아침 활주로", sky: "#CFE2F2", hz: "#EEF4F8", far: "#B5C6D3", gr: "#3B4245", sun: "#FFF4C2" },
+  { name: "한낮의 터미널", sky: "#9FCBEB", hz: "#DCEEFA", far: "#8FA9BC", gr: "#3B4245", sun: "#FFFBE0" },
+  { name: "노을 지는 공항", sky: "#F2A97C", hz: "#FCE0B8", far: "#B8775A", gr: "#3E3634", sun: "#FFE08A" },
+  { name: "밤 비행", sky: "#1F2A4A", hz: "#3A4A73", far: "#141C33", gr: "#22262E", sun: "#F4F1DE", night: true },
+  { name: "새벽 하늘", sky: "#8FA3C8", hz: "#F3C9B8", far: "#6F7FA0", gr: "#353A44", sun: "#FFE7C2" },
+];
+const STAGE_LEN = 520;
+const hx = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mixC = (a, b, k) => { const A = hx(a), B = hx(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * k)).join(",")})`; };
+const hash1 = (n) => { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); };
 function miniStep(dt) {
+  if (MINI.phase === "off") return;
+  if (MINI.phase !== "play") { miniPhase(dt); return; }
   if (!MINI.run) return; G.mini.ms += dt * 1000; MINI.t += dt; MINI.runT = (MINI.runT || 0) + dt;
   MINI.vy -= 260 * dt; MINI.y = Math.max(0, MINI.y + MINI.vy * dt); if (MINI.y === 0) { MINI.vy = Math.max(0, MINI.vy); MINI.air = 0; }
   MINI.spawn -= dt;
   if (MINI.spawn <= 0) {
     const o = { x: MINI.w + 4, w: pick([8, 10, 12]), h: pick([8, 11, 14]), c: pick(["#2E3F66", "#C9B48D", "#8E979B", "#A33A35"]) }; MINI.obs.push(o);
-    // coins: an arc over the suitcase, a row along the floor, or a high one that needs the double jump
     const k = Math.random();
     if (k < 0.45) [-10, -4, 2, 8].forEach((dx, i) => MINI.coins.push({ x: o.x + o.w / 2 + dx, h: o.h + 8 + [2, 6, 6, 2][i] }));
     else if (k < 0.75) [26, 32, 38].forEach((dx) => MINI.coins.push({ x: o.x + dx, h: 5 }));
@@ -1776,19 +1863,43 @@ function miniStep(dt) {
     MINI.spawn = rand(1.1, 2.0);
   }
   const sp = 46 + Math.min(40, MINI.score * 1.5);
+  MINI.dist += sp * dt; const st = Math.floor(MINI.dist / STAGE_LEN);
+  if (st !== MINI.stage) { MINI.stage = st; MINI.banner = 1.8; G.mini.maxStage = Math.max(G.mini.maxStage || 0, st); log("mini_stage", { stage: st }); SND.click(); }
+  if (MINI.banner > 0) MINI.banner -= dt;
   MINI.obs.forEach((o) => (o.x -= sp * dt)); MINI.coins.forEach((c) => (c.x -= sp * dt)); MINI.pop.forEach((p) => { p.t -= dt; p.y -= dt * 14; }); MINI.pop = MINI.pop.filter((p) => p.t > 0);
   MINI.coins = MINI.coins.filter((c) => {
-    if (c.x > 13 && c.x < 31 && Math.abs(c.h - (MINI.y + 6)) < 8) { const v = c.big ? 3 : 1; MINI.got += v; MINI.score += v; SND.coin(); G.mini.coins = (G.mini.coins || 0) + v; G.mini.best = Math.max(G.mini.best, MINI.score); MINI.pop.push({ x: c.x - 2, y: MINI.h - 10 - c.h - 4, t: 0.5, v }); return false; }
+    if (c.x > 13 && c.x < 31 && Math.abs(c.h - (MINI.y + 6)) < 8) { const v = c.big ? 3 : 1; MINI.got += v; MINI.score += v; SND.coin(); G.mini.coins = (G.mini.coins || 0) + v; G.mini.best = Math.max(G.mini.best, MINI.score); MINI.pop.push({ x: c.x - 2, y: MINI.h - 14 - c.h - 4, t: 0.5, v }); return false; }
     return c.x > -4;
   });
   MINI.obs = MINI.obs.filter((o) => { if (!o.passed && o.x + o.w < 18) { o.passed = true; MINI.score++; G.mini.best = Math.max(G.mini.best, MINI.score); } return o.x + o.w > -2; });
-  if (MINI.obs.some((o) => o.x < 26 && o.x + o.w > 16 && MINI.y < o.h - 1)) { G.mini.crashes++; SND.crash(); G.mini.bestRun = Math.max(G.mini.bestRun || 0, MINI.runT || 0); MINI.runT = 0; MINI.score = 0; MINI.got = 0; MINI.obs = []; MINI.coins = []; MINI.spawn = 1; }
+  if (MINI.obs.some((o) => o.x < 26 && o.x + o.w > 16 && MINI.y < o.h - 1)) { G.mini.crashes++; SND.crash(); G.mini.bestRun = Math.max(G.mini.bestRun || 0, MINI.runT || 0); MINI.runT = 0; MINI.score = 0; MINI.got = 0; MINI.obs = []; MINI.coins = []; MINI.spawn = 1; MINI.dist = 0; MINI.stage = 0; MINI.banner = 1.2; }
   miniDraw();
 }
 function miniDraw() {
-  const g = $("mini-cv").getContext("2d"), W2 = MINI.w, H2 = MINI.h, gy = H2 - 10;
-  g.imageSmoothingEnabled = false; g.fillStyle = "#CFE2F2"; g.fillRect(0, 0, W2, H2); g.fillStyle = "#E7F0F7"; g.fillRect(0, 10, W2, 6);
-  g.fillStyle = "#3B4245"; g.fillRect(0, gy, W2, 10); g.fillStyle = "#596266"; for (let x = -((MINI.t * 46) % 8); x < W2; x += 8) g.fillRect(Math.round(x), gy + 2, 4, 2);
+  const g = $("mini-cv").getContext("2d"), W2 = MINI.w, H2 = MINI.h, gy = H2 - 14, d = MINI.dist;
+  // blend into the next scene over the last fifth of each stretch
+  const u = d / STAGE_LEN, i0 = Math.floor(u), f = u - i0, k = f > 0.8 ? (f - 0.8) / 0.2 : 0;
+  const A = MSTAGE[i0 % MSTAGE.length], B = MSTAGE[(i0 + 1) % MSTAGE.length], C = (key) => mixC(A[key], B[key], k);
+  const nightK = (A.night ? 1 - k : 0) + (B.night ? k : 0);
+  g.imageSmoothingEnabled = false;
+  const sky = g.createLinearGradient(0, 0, 0, gy); sky.addColorStop(0, C("sky")); sky.addColorStop(1, C("hz")); g.fillStyle = sky; g.fillRect(0, 0, W2, gy);
+  if (nightK > 0.05) { g.globalAlpha = nightK; for (let s = 0; s < 26; s++) { const sx = Math.round((hash1(s) * W2 * 1.4 - d * 0.03) % W2 + W2) % W2, sy = Math.round(hash1(s + 50) * (gy - 40)) + 4; g.fillStyle = Math.sin(MINI.t * 3 + s) > 0.6 ? "#FFFFFF" : "#C9D4F0"; g.fillRect(sx, sy, 1, 1); } g.globalAlpha = 1; }
+  // sun / moon
+  g.fillStyle = C("sun"); const sunY = Math.round(24 + Math.sin(u * 1.3) * 6); g.fillRect(W2 - 26, sunY, 9, 9); g.fillRect(W2 - 27, sunY + 1, 11, 7); g.fillRect(W2 - 25, sunY - 1, 7, 11);
+  // clouds
+  if (nightK < 0.9) { g.globalAlpha = 0.8 * (1 - nightK); g.fillStyle = "#FFFFFF"; for (let c = 0; c < 4; c++) { const cx = Math.round(((hash1(c + 9) * 160 - d * 0.18) % 160 + 160) % 160) - 30, cy = 30 + Math.round(hash1(c + 3) * 34); g.fillRect(cx, cy, 18, 4); g.fillRect(cx + 4, cy - 3, 9, 3); } g.globalAlpha = 1; }
+  // far skyline: terminal blocks and the control tower, slow parallax
+  g.fillStyle = C("far"); const off = (d * 0.25) % 200;
+  for (let bx = -1; bx < 4; bx++) {
+    const x0 = Math.round(bx * 50 - (off % 50)), seed = Math.floor((d * 0.25) / 50) + bx, hh = 10 + Math.round(hash1(seed) * 16);
+    g.fillRect(x0, gy - hh, 40, hh);
+    if (hash1(seed + 7) > 0.7) { g.fillRect(x0 + 16, gy - hh - 22, 5, 22); g.fillRect(x0 + 12, gy - hh - 28, 13, 6); }
+    if (nightK > 0.3) { g.fillStyle = "#FFD878"; for (let w = 0; w < 5; w++) if (hash1(seed * 3 + w) > 0.4) g.fillRect(x0 + 4 + w * 7, gy - hh + 4, 2, 2); g.fillStyle = C("far"); }
+  }
+  // a plane crossing now and then
+  const pl = (d * 0.6) % 900; if (pl < 180) { const px = Math.round(W2 + 10 - pl), py = 18 + Math.round(pl * 0.06); g.fillStyle = nightK > 0.5 ? "#9AA6C8" : "#F7F9FB"; g.fillRect(px, py, 14, 3); g.fillRect(px + 5, py - 3, 4, 9); g.fillRect(px + 12, py - 3, 2, 3); if (nightK > 0.5 && Math.sin(MINI.t * 10) > 0) { g.fillStyle = "#FF5A4E"; g.fillRect(px, py + 1, 1, 1); } }
+  // ground with runway lights
+  g.fillStyle = C("gr"); g.fillRect(0, gy, W2, H2 - gy); g.fillStyle = nightK > 0.4 ? "#FFE08A" : "#6A7377"; for (let x = -((d) % 10); x < W2; x += 10) g.fillRect(Math.round(x), gy + 3, 4, 2);
   MINI.obs.forEach((o) => { g.fillStyle = o.c; g.fillRect(Math.round(o.x), gy - o.h, o.w, o.h); g.fillStyle = "#2B2E2F"; g.fillRect(Math.round(o.x) + 3, gy - o.h - 2, o.w - 6, 2); });
   MINI.coins.forEach((c) => { const cy = gy - c.h, wv = Math.max(1, Math.round(Math.abs(Math.sin(MINI.t * 6 + c.x * 0.2)) * (c.big ? 6 : 4))), x0 = Math.round(c.x - wv / 2), r = c.big ? 4 : 3; g.fillStyle = "#C99A10"; g.fillRect(x0, Math.round(cy - r), wv, r * 2); g.fillStyle = c.big ? "#FFD84A" : "#F5C518"; g.fillRect(x0 + (wv > 2 ? 1 : 0), Math.round(cy - r + 1), Math.max(1, wv - 2), r * 2 - 2); if (wv > 2) { g.fillStyle = "#FFF3B0"; g.fillRect(x0 + 1, Math.round(cy - r + 1), 1, 2); } });
   g.font = "8px Galmuri11, monospace"; g.textBaseline = "top";
@@ -1796,7 +1907,9 @@ function miniDraw() {
   const py = Math.round(gy - 12 - MINI.y);
   g.fillStyle = "#F3ECDD"; g.fillRect(16, py + 2, 12, 9); g.fillRect(17, py + 1, 10, 11); g.fillRect(18, py, 8, 12);
   g.fillStyle = "#FFFFFF"; g.fillRect(19, py + 4, 3, 3); g.fillRect(23, py + 4, 3, 3); g.fillStyle = "#111"; g.fillRect(20, py + 5, 2, 2); g.fillRect(24, py + 5, 2, 2);
-  g.fillStyle = "#454949"; g.font = "8px Galmuri11, monospace"; g.textBaseline = "top"; g.fillText(`점수 ${MINI.score} · 코인 ${MINI.got} · 최고 ${G.mini.best}`, 4, 2);
+  // score and the scene name live in crisp HTML over the pixel canvas
+  $("ms-score").textContent = `점수 ${MINI.score}`; $("ms-coin").textContent = `코인 ${MINI.got}`; $("ms-best").textContent = `최고 ${G.mini.best}`;
+  const sb = $("ms-stage"), show = MINI.banner > 0; if (sb.hidden === show) sb.hidden = !show; if (show) { const nm = `${i0 + 1}구간 · ${MSTAGE[i0 % MSTAGE.length].name}`; if (sb.textContent !== nm) sb.textContent = nm; sb.style.opacity = Math.min(1, MINI.banner * 1.5); }
 }
 function botTurn(r, a, dt, k = 3) { const da = ((a - r.ry + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI; r.ry += da * Math.min(1, dt * k); }
 // walls, pillars, benches and sign posts that walkers must go around
@@ -2074,7 +2187,10 @@ function render(nowS) {
     r.g.position.set(r.x, 0, r.z); r.g.rotation.y = r.ry;
     const br = 1 + Math.sin(nowS * 1.4 + r.id) * 0.01; r.body.scale.set(RB.a * br, RB.b / br * (r.rider ? 0.93 : 1), RB.a * br);
     const weak = r.signal === "weak", on = weak ? Math.sin(nowS * 5) > 0.35 : r.signal && Math.sin(nowS * 9) > -0.15;
-    r.eyes.forEach((e) => { e.white.material.emissive.setHex(on ? 0xFFC531 : 0x000000); e.halo.material.opacity = on ? (weak ? 0.45 : 0.95) : 0; });
+    const calm = !r.signal && r.rider === "me" ? (G.t - (r.sitAt ?? -99) < 4 ? 0.55 + 0.3 * Math.sin(nowS * 3) : 0.22 + 0.1 * Math.sin(nowS * 1.2)) : 0;
+    r.eyes.forEach((e) => {
+      if (calm > 0) { e.white.material.emissive.setRGB(0.42 * calm, 0.62 * calm, 0.9 * calm); e.halo.material.color.setHex(0x9CC8FF); e.halo.material.opacity = calm * 0.55; return; }
+      e.halo.material.color.setHex(0xFFC531); e.white.material.emissive.setHex(on ? 0xFFC531 : 0x000000); e.halo.material.opacity = on ? (weak ? 0.45 : 0.95) : 0; });
     r.glow.material.color.setHex(on ? 0xFFC531 : r.signal ? 0xFFE6A0 : 0xDDEBFF); r.glow.material.opacity = on ? 0.95 : 0.5;
     // gaze
     let look = r.look; if (r.signal && G.own) look = pathAt(G.own.s);
@@ -2218,7 +2334,7 @@ function finish(outcome) {
     gotSignal: G.signalAt !== null, missedLaps: G.missed, missPass: G.missPass || 0, wrongPicks: G.wrong, outcome: G.carrying ? "picked" : outcome, exitMs: ms(G.exitAt), pickToExitMs: G.exitAt !== null && G.pickedAt !== null ? ms(G.exitAt - G.pickedAt) : null,
     bagOnPauseMs: Math.round((G.bagOnMs || 0) + (G.bagOn ? (G.t - G.bagOnAt) * 1000 : 0)), usedPauseForBag: !!(G.bagOnMs || G.bagOn), carryOffer: G.carryOfferRes || null, carryOfferMs: G.carryOfferMs ?? null, miniDoubles: G.mini.doubles || 0,
     inp: (({ lastAt, lastTurn, lastMv, wasMoving, ...r }) => ({ ...r, dragDeg: Math.round(r.dragDeg), yawDeg: Math.round(r.yawDeg), mousePx: Math.round(r.mousePx), waitWalkM: +r.waitWalkM.toFixed(1), idleMaxMs: Math.round(r.idleMaxMs), idleMs: Math.round(r.idleMs) }))(G.inp), inputPerMin: G.t > 1 ? +((G.inp.keys + G.inp.clicks) / (G.t / 60)).toFixed(1) : 0,
-    miniMs: Math.round(G.mini.ms), miniCoins: G.mini.coins || 0, miniBestRunMs: Math.round(Math.max(G.mini.bestRun || 0, MINI.run ? MINI.runT || 0 : 0) * 1000), miniJumps: G.mini.jumps, miniBest: G.mini.best, miniPlays: G.mini.plays,
+    miniMs: Math.round(G.mini.ms), miniCoins: G.mini.coins || 0, miniBestRunMs: Math.round(Math.max(G.mini.bestRun || 0, MINI.run ? MINI.runT || 0 : 0) * 1000), miniJumps: G.mini.jumps, miniBest: G.mini.best, miniPlays: G.mini.plays, miniOffers: G.mini.offers || 0, miniAccepts: G.mini.accepts || 0, miniDeclines: G.mini.declines || 0, miniMaxStage: G.mini.maxStage || 0,
     hallInMs: null, phoneCheckMs: ms(G.phoneFirstAt), totalMs: ms(G.t), waitMs: ms(G.ht), gameMinutes: +(G.t * TL.clockScale / 60).toFixed(1),
   };
   setTimeout(() => buildSurvey(outcome), 300);
