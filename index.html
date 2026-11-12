@@ -2560,7 +2560,23 @@ async function importCodes(lines) {
 }
 const importMsg = (r, src) => `${src} ${r.ok}건을 불러왔습니다${r.saved ? ` · ${r.saved}판을 저장해 다음에도 보입니다` : r.db ? "" : " · 이 화면에서는 저장되지 않습니다"}${r.failed ? ` · ${r.failed}판은 저장하지 못했습니다` : ""}${r.bad ? ` · ${r.bad}건은 읽지 못했습니다` : ""}.`;
 const sheetId = (v) => (String(v || "").match(/\/d\/([a-zA-Z0-9-_]{20,})/) || String(v || "").match(/^([a-zA-Z0-9-_]{30,})$/) || [])[1] || null;
+let adminKey = "";
+async function adminApi(params) {
+  const q = new URLSearchParams({ ...params, key: adminKey }).toString();
+  const r = await fetch(`${COLLECT_URL}?${q}`, { cache: "no-store" }); return r.json();
+}
+async function pullSheetOutside() {
+  $("sheet-state").textContent = "구글 시트를 읽는 중입니다.";
+  try {
+    const j = await adminApi({ mode: "list" });
+    if (!j || !j.ok) { $("sheet-state").textContent = "관리자 확인에 실패했습니다. 다시 로그인해 주세요."; return; }
+    const codes = (j.codes || []).filter((c) => /^PZ[01]\./.test(String(c || "")));
+    records.clear(); const r = await importCodes(codes); renderResults();
+    $("sheet-state").textContent = codes.length ? `시트에 쌓인 결과 ${codes.length}건을 불러왔습니다.${r.bad ? ` · ${r.bad}건은 읽지 못했습니다.` : ""}` : "시트에 아직 결과가 없습니다.";
+  } catch { $("sheet-state").textContent = "지금은 구글 시트를 읽을 수 없습니다. 잠시 뒤 다시 눌러 주세요."; }
+}
 async function pullSheet(manual) {
+  if (HOSTED_OUTSIDE) return pullSheetOutside();
   const db = await capDb, mcp = await use("mcp");
   let url = $("sheet-url").value.trim();
   if (!url && db) { try { url = (await db.doc("config/sheet").get()).data()?.url || ""; $("sheet-url").value = url; } catch {} }
@@ -2593,11 +2609,13 @@ $("copy-summary").addEventListener("click", () => copyText(summaryCsv(), $("expo
 $("copy-events").addEventListener("click", () => copyText(eventsCsv(), $("export-state")));
 $("copy-samples").addEventListener("click", () => copyText(samplesCsv(), $("export-state")));
 $("save-csv").addEventListener("click", async () => {
-  const dl = await capDl; if (!dl) return;
+  const dl = await capDl;
+  if (!dl) { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + summaryCsv()], { type: "text/csv;charset=utf-8" })); a.download = "PAUSE_체험결과_요약.csv"; document.body.appendChild(a); a.click(); a.remove(); $("export-state").textContent = "저장했습니다."; return; }
   try { await dl.save({ filename: "PAUSE_체험결과_요약.csv", data: summaryCsv() }); $("export-state").textContent = "저장했습니다."; }
   catch (e) { $("export-state").textContent = ["dismissed", "declined", "cancelled"].includes(e?.code) ? "" : "파일로 저장하지 못했습니다. CSV 복사를 이용해 주세요."; }
 });
-capDl.then((dl) => { if (dl) $("save-csv").hidden = false; });
+capDl.then((dl) => { if (dl || HOSTED_OUTSIDE) $("save-csv").hidden = false; });
+if (HOSTED_OUTSIDE) { $("sheet-url").style.display = "none"; $("sheet-load").textContent = "구글 시트 새로 불러오기"; }
 // one folder per player (a two-round session), named after the nickname
 const FOLDER_SVG = '<svg viewBox="0 0 16 13" shape-rendering="crispEdges" aria-hidden="true"><path fill="#454949" d="M0 1h6v1h1v1h9v10H0z"/><path fill="#F2D27A" d="M1 2h5v1h1v1h8v8H1z"/><path fill="#FFE9A8" d="M1 5h14v1H1z"/></svg>';
 let openGroup = null;
@@ -2613,6 +2631,12 @@ function armed(btn, fn) {
   setTimeout(() => { if (btn.dataset.armed) { delete btn.dataset.armed; btn.textContent = btn.dataset.label; } }, 3500);
 }
 async function deleteRecords(rs) {
+  if (HOSTED_OUTSIDE) {
+    const all = rs.length === v3().length, sessions = [...new Set(rs.map((r) => r.summary.sessionId).filter(Boolean))];
+    try { const j = await adminApi(all ? { mode: "delete", all: "1" } : { mode: "delete", sessions: sessions.join(",") }); if (!j || !j.ok) return rs.length; }
+    catch { return rs.length; }
+    rs.forEach((r) => records.delete(r.summary.runId)); renderResults(); return 0;
+  }
   const db = await capDb; let fail = 0;
   for (const r of rs) { if (r._uid) { try { if (!db) throw new Error("no db"); await db.doc(`sessions/${r._uid}/runs/${r._doc}`).delete(); } catch { fail++; continue; } } records.delete(r.summary.runId); }
   if (db) { const uids = new Set(rs.map((r) => r._uid).filter(Boolean)); for (const u of uids) if (![...records.values()].some((r) => r._uid === u)) { try { await db.doc(`board/${u}`).delete(); } catch {} } }
@@ -2634,6 +2658,7 @@ function renderFolders() {
 }
 $("del-all").addEventListener("click", (e) => armed(e.currentTarget, async () => { const f = await deleteRecords(v3()); $("del-state").textContent = f ? `${f}건은 삭제하지 못했습니다.` : "모든 기록을 삭제했습니다."; }));
 async function loadDb() {
+  if (HOSTED_OUTSIDE) { $("db-state").textContent = "결과는 구글 시트에서 불러옵니다."; renderResults(); return pullSheetOutside(); }
   const db = await capDb, user = await capUser;
   if (!db || !user) { $("db-state").textContent = "자동 저장 기록은 연구자 계정에서만 보입니다."; renderResults(); return; }
   const timer = setTimeout(() => ($("db-state").textContent = "저장된 기록을 불러오지 못했습니다."), 10000);
@@ -2647,8 +2672,16 @@ async function loadDb() {
 let adminOK = false;
 function openAdmin() { $("admin-pw").value = ""; $("admin-msg").textContent = ""; openModal("m-admin"); }
 $("btn-admin").addEventListener("click", (e) => { e.preventDefault(); openAdmin(); });
-if (HOSTED_OUTSIDE) $("btn-admin").style.display = "none"; // results are reviewed in the claude.ai version
-const tryAdmin = () => { if ($("admin-pw").value === "0309") { adminOK = true; $("m-admin").hidden = true; location.hash = "#results"; route(); } else { $("admin-msg").textContent = "비밀번호가 맞지 않습니다."; $("admin-pw").select(); } };
+// on the plain web page the password is checked by the sheet script, so it never sits in the page
+const tryAdmin = async () => {
+  if (HOSTED_OUTSIDE) {
+    $("admin-msg").textContent = "확인하는 중입니다."; adminKey = $("admin-pw").value;
+    let ok = false; try { ok = !!(await adminApi({ mode: "auth" }))?.ok; } catch {}
+    if (ok) { adminOK = true; $("m-admin").hidden = true; location.hash = "#results"; route(); }
+    else { adminKey = ""; $("admin-msg").textContent = "비밀번호가 맞지 않거나 시트에 연결할 수 없습니다."; $("admin-pw").select(); }
+    return;
+  }
+  if ($("admin-pw").value === "0309") { adminOK = true; $("m-admin").hidden = true; location.hash = "#results"; route(); } else { $("admin-msg").textContent = "비밀번호가 맞지 않습니다."; $("admin-pw").select(); } };
 $("admin-ok").addEventListener("click", tryAdmin);
 $("admin-pw").addEventListener("keydown", (e) => { if (e.key === "Enter") tryAdmin(); });
 function route() { if (location.hash === "#results" && !adminOK) { history.replaceState(null, "", location.pathname + location.search); if ($("s-open").hidden) { show("s-open"); startDemo(); } openAdmin(); return; }
