@@ -1803,7 +1803,7 @@ function stepDoors(dt) {
   W.exitDoors.forEach((d) => stepDoor(d, dt, (d === W.exitDoor && G.carrying && Math.hypot(G.p.x - d.x, G.p.z - d.z) < 3.5) || G.people.some((q) => q.leaving && Math.hypot(q.x - d.x, q.z - d.z) < 3.5)));
 }
 /* ---- sitting on PAUSE: mmWave senses the seat → phone taps the NFC tag → mobile mini-game ---- */
-const MINI = { w: 100, h: 165, y: 0, vy: 0, obs: [], coins: [], got: 0, pop: [], t: 0, score: 0, run: false, spawn: 0, phase: "off", pt: 0, dist: 0, deco: [] };
+const MINI = { w: 100, h: 165, y: 0, vy: 0, obs: [], coins: [], plats: [], got: 0, pop: [], t: 0, score: 0, run: false, spawn: 0, phase: "off", pt: 0, dist: 0, deco: [] };
 const MP_T = { phone: 1.6, link: 2.7, done: 3.9, ask: 4.7 };
 function mpView(v) { document.querySelectorAll("#mini .mp-view").forEach((el) => el.classList.toggle("on", el.dataset.v === v)); $("mini-note").hidden = v === "nfc"; }
 function miniOpen() {
@@ -1827,13 +1827,13 @@ function miniPhase(dt) {
 }
 function miniPlay() {
   if (MINI.phase !== "ask" && MINI.phase !== "idle") return;
-  MINI.phase = "play"; mpView("play"); MINI.y = 0; MINI.vy = 0; MINI.obs = []; MINI.coins = []; MINI.pop = []; MINI.got = 0; MINI.score = 0; MINI.run = true; MINI.runT = 0; MINI.spawn = 1.2; MINI.dist = 0; MINI.stage = 0; MINI.banner = 1.6;
+  MINI.phase = "play"; mpView("play"); MINI.y = 0; MINI.vy = 0; MINI.air = 0; MINI.obs = []; MINI.coins = []; MINI.plats = []; MINI.pop = []; MINI.got = 0; MINI.score = 0; MINI.run = true; MINI.runT = 0; MINI.spawn = 1.2; MINI.dist = 0; MINI.stage = 0; MINI.banner = 1.6;
   G.mini.plays++; log("mini_open"); miniDraw();
 }
 $("mini-yes").addEventListener("click", (e) => { e.stopPropagation(); G.mini.accepts = (G.mini.accepts || 0) + 1; log("mini_accept"); SND.pop(); miniPlay(); });
 $("mini-no").addEventListener("click", (e) => { e.stopPropagation(); if (MINI.phase !== "ask") return; G.mini.declines = (G.mini.declines || 0) + 1; log("mini_decline"); MINI.phase = "idle"; mpView("idle"); });
 $("mini-again").addEventListener("click", (e) => { e.stopPropagation(); log("mini_accept", { again: true }); miniPlay(); });
-function miniJump() { if (!MINI.run || MINI.phase !== "play") return; if (MINI.y <= 0.01) { MINI.vy = 92; MINI.air = 1; G.mini.jumps++; SND.jump(); } else if (MINI.air === 1) { MINI.vy = 84; MINI.air = 2; G.mini.jumps++; G.mini.doubles = (G.mini.doubles || 0) + 1; SND.jump2(); } }
+function miniJump() { if (!MINI.run || MINI.phase !== "play") return; if (!MINI.air) { MINI.vy = 92; MINI.air = 1; G.mini.jumps++; SND.jump(); } else if (MINI.air === 1) { MINI.vy = 84; MINI.air = 2; G.mini.jumps++; G.mini.doubles = (G.mini.doubles || 0) + 1; SND.jump2(); } }
 $("mini-cv").addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); miniJump(); });
 $("stage").addEventListener("pointerdown", (e) => { if (TOUCH && MINI.phase === "play" && !e.target.closest("button")) { e.preventDefault(); miniJump(); } }, true);
 // the run passes through the airport day: morning runway → afternoon → sunset → night → dawn, then round again
@@ -1852,27 +1852,42 @@ function miniStep(dt) {
   if (MINI.phase === "off") return;
   if (MINI.phase !== "play") { miniPhase(dt); return; }
   if (!MINI.run) return; G.mini.ms += dt * 1000; MINI.t += dt; MINI.runT = (MINI.runT || 0) + dt;
-  MINI.vy -= 260 * dt; MINI.y = Math.max(0, MINI.y + MINI.vy * dt); if (MINI.y === 0) { MINI.vy = Math.max(0, MINI.vy); MINI.air = 0; }
+  // feet height y; land on the ground or on top of a floating belt while falling
+  const prevY = MINI.y; MINI.vy -= 260 * dt; MINI.y += MINI.vy * dt;
+  let floor = 0; if (MINI.vy <= 0) MINI.plats.forEach((pl) => { if (pl.x < 27 && pl.x + pl.w > 17 && prevY >= pl.h - 0.6 && MINI.y <= pl.h) floor = Math.max(floor, pl.h); });
+  if (MINI.y <= floor) { if (MINI.air && floor > 0 && prevY > floor + 0.5) SND.click(); MINI.y = floor; MINI.vy = 0; MINI.air = 0; MINI.onPlat = floor > 0; }
+  else if (!MINI.air && MINI.y < prevY - 0.01) MINI.air = 1; // ran off the edge of a belt: one jump left in the air
   MINI.spawn -= dt;
   if (MINI.spawn <= 0) {
-    const o = { x: MINI.w + 4, w: pick([8, 10, 12]), h: pick([8, 11, 14]), c: pick(["#2E3F66", "#C9B48D", "#8E979B", "#A33A35"]) }; MINI.obs.push(o);
-    const k = Math.random();
-    if (k < 0.45) [-10, -4, 2, 8].forEach((dx, i) => MINI.coins.push({ x: o.x + o.w / 2 + dx, h: o.h + 8 + [2, 6, 6, 2][i] }));
-    else if (k < 0.75) [26, 32, 38].forEach((dx) => MINI.coins.push({ x: o.x + dx, h: 5 }));
-    else if (k < 0.9) MINI.coins.push({ x: o.x + o.w / 2, h: o.h + 24, big: true });
-    MINI.spawn = rand(1.1, 2.0);
+    const lvl = Math.floor(MINI.dist / STAGE_LEN), k = Math.random(), x0 = MINI.w + 4, bag = () => ({ w: pick([8, 10, 12]), h: pick([8, 11, 14]), c: pick(["#2E3F66", "#C9B48D", "#8E979B", "#A33A35"]) });
+    // floating baggage belts show up more often the further you run
+    if (k < Math.min(0.66, 0.42 + lvl * 0.08)) {
+      const high = Math.random() < 0.35 + lvl * 0.05, pl = { x: x0, w: pick([34, 42, 50]), h: high ? pick([26, 30]) : pick([14, 16]) }; MINI.plats.push(pl);
+      for (let cx = pl.x + 6; cx < pl.x + pl.w - 3; cx += 7) MINI.coins.push({ x: cx, h: pl.h + 7 });
+      if (pl.w >= 42 && Math.random() < 0.4 + lvl * 0.08) { const o = bag(); o.h = Math.min(o.h, 10); MINI.obs.push({ ...o, x: pl.x + pl.w - o.w - 6, base: pl.h }); }
+      if (Math.random() < 0.55) { const o = bag(); MINI.obs.push({ ...o, x: pl.x + pl.w * 0.45 }); }
+      // a second, higher belt right after a low one (a staircase)
+      if (!high && lvl >= 1 && Math.random() < 0.45) { const p2 = { x: pl.x + pl.w + 10, w: 34, h: pl.h + 13 }; MINI.plats.push(p2); MINI.coins.push({ x: p2.x + p2.w / 2, h: p2.h + 12, big: true }); }
+      MINI.spawn = (pl.w + 30) / (46 + Math.min(40, MINI.score * 1.5)) + rand(0.5, 1.0);
+    } else {
+      const o = { x: x0, ...bag() }; MINI.obs.push(o);
+      if (k < 0.75) [-10, -4, 2, 8].forEach((dx, i) => MINI.coins.push({ x: o.x + o.w / 2 + dx, h: o.h + 8 + [2, 6, 6, 2][i] }));
+      else if (k < 0.88) [26, 32, 38].forEach((dx) => MINI.coins.push({ x: o.x + dx, h: 5 }));
+      else MINI.coins.push({ x: o.x + o.w / 2, h: o.h + 24, big: true });
+      MINI.spawn = rand(1.1, 2.0);
+    }
   }
   const sp = 46 + Math.min(40, MINI.score * 1.5);
   MINI.dist += sp * dt; const st = Math.floor(MINI.dist / STAGE_LEN);
   if (st !== MINI.stage) { MINI.stage = st; MINI.banner = 1.8; G.mini.maxStage = Math.max(G.mini.maxStage || 0, st); log("mini_stage", { stage: st }); SND.click(); }
   if (MINI.banner > 0) MINI.banner -= dt;
-  MINI.obs.forEach((o) => (o.x -= sp * dt)); MINI.coins.forEach((c) => (c.x -= sp * dt)); MINI.pop.forEach((p) => { p.t -= dt; p.y -= dt * 14; }); MINI.pop = MINI.pop.filter((p) => p.t > 0);
+  MINI.obs.forEach((o) => (o.x -= sp * dt)); MINI.coins.forEach((c) => (c.x -= sp * dt)); MINI.plats.forEach((pl) => (pl.x -= sp * dt)); MINI.plats = MINI.plats.filter((pl) => pl.x + pl.w > -2); MINI.pop.forEach((p) => { p.t -= dt; p.y -= dt * 14; }); MINI.pop = MINI.pop.filter((p) => p.t > 0);
   MINI.coins = MINI.coins.filter((c) => {
     if (c.x > 13 && c.x < 31 && Math.abs(c.h - (MINI.y + 6)) < 8) { const v = c.big ? 3 : 1; MINI.got += v; MINI.score += v; SND.coin(); G.mini.coins = (G.mini.coins || 0) + v; G.mini.best = Math.max(G.mini.best, MINI.score); MINI.pop.push({ x: c.x - 2, y: MINI.h - 14 - c.h - 4, t: 0.5, v }); return false; }
     return c.x > -4;
   });
   MINI.obs = MINI.obs.filter((o) => { if (!o.passed && o.x + o.w < 18) { o.passed = true; MINI.score++; G.mini.best = Math.max(G.mini.best, MINI.score); } return o.x + o.w > -2; });
-  if (MINI.obs.some((o) => o.x < 26 && o.x + o.w > 16 && MINI.y < o.h - 1)) { G.mini.crashes++; SND.crash(); G.mini.bestRun = Math.max(G.mini.bestRun || 0, MINI.runT || 0); MINI.runT = 0; MINI.score = 0; MINI.got = 0; MINI.obs = []; MINI.coins = []; MINI.spawn = 1; MINI.dist = 0; MINI.stage = 0; MINI.banner = 1.2; }
+  if (MINI.obs.some((o) => o.x < 26 && o.x + o.w > 16 && MINI.y < (o.base || 0) + o.h - 1 && MINI.y + 11 > (o.base || 0) + 1)) { G.mini.crashes++; SND.crash(); G.mini.bestRun = Math.max(G.mini.bestRun || 0, MINI.runT || 0); MINI.runT = 0; MINI.score = 0; MINI.got = 0; MINI.obs = []; MINI.coins = []; MINI.plats = []; MINI.y = 0; MINI.vy = 0; MINI.air = 0; MINI.spawn = 1; MINI.dist = 0; MINI.stage = 0; MINI.banner = 1.2; }
   miniDraw();
 }
 function miniDraw() {
@@ -1900,7 +1915,12 @@ function miniDraw() {
   const pl = (d * 0.6) % 900; if (pl < 180) { const px = Math.round(W2 + 10 - pl), py = 18 + Math.round(pl * 0.06); g.fillStyle = nightK > 0.5 ? "#9AA6C8" : "#F7F9FB"; g.fillRect(px, py, 14, 3); g.fillRect(px + 5, py - 3, 4, 9); g.fillRect(px + 12, py - 3, 2, 3); if (nightK > 0.5 && Math.sin(MINI.t * 10) > 0) { g.fillStyle = "#FF5A4E"; g.fillRect(px, py + 1, 1, 1); } }
   // ground with runway lights
   g.fillStyle = C("gr"); g.fillRect(0, gy, W2, H2 - gy); g.fillStyle = nightK > 0.4 ? "#FFE08A" : "#6A7377"; for (let x = -((d) % 10); x < W2; x += 10) g.fillRect(Math.round(x), gy + 3, 4, 2);
-  MINI.obs.forEach((o) => { g.fillStyle = o.c; g.fillRect(Math.round(o.x), gy - o.h, o.w, o.h); g.fillStyle = "#2B2E2F"; g.fillRect(Math.round(o.x) + 3, gy - o.h - 2, o.w - 6, 2); });
+  // floating baggage belts: rubber top with moving slats, yellow safety edge, legs down to the ground
+  MINI.plats.forEach((pl) => { const x = Math.round(pl.x), top = gy - pl.h;
+    g.fillStyle = nightK > 0.5 ? "#1A1D22" : "#5E676B"; g.fillRect(x + 4, top + 5, 2, pl.h - 5); g.fillRect(x + pl.w - 6, top + 5, 2, pl.h - 5);
+    g.fillStyle = "#2B2E2F"; g.fillRect(x, top, pl.w, 5); g.fillStyle = "#4A5154"; for (let sx = x + 1 + Math.round((MINI.t * 20) % 5); sx < x + pl.w - 1; sx += 5) g.fillRect(sx, top + 1, 2, 2);
+    g.fillStyle = "#F2C230"; g.fillRect(x, top + 4, pl.w, 1); });
+  MINI.obs.forEach((o) => { const b = o.base || 0; g.fillStyle = o.c; g.fillRect(Math.round(o.x), gy - b - o.h, o.w, o.h); g.fillStyle = "#2B2E2F"; g.fillRect(Math.round(o.x) + 3, gy - b - o.h - 2, o.w - 6, 2); });
   MINI.coins.forEach((c) => { const cy = gy - c.h, wv = Math.max(1, Math.round(Math.abs(Math.sin(MINI.t * 6 + c.x * 0.2)) * (c.big ? 6 : 4))), x0 = Math.round(c.x - wv / 2), r = c.big ? 4 : 3; g.fillStyle = "#C99A10"; g.fillRect(x0, Math.round(cy - r), wv, r * 2); g.fillStyle = c.big ? "#FFD84A" : "#F5C518"; g.fillRect(x0 + (wv > 2 ? 1 : 0), Math.round(cy - r + 1), Math.max(1, wv - 2), r * 2 - 2); if (wv > 2) { g.fillStyle = "#FFF3B0"; g.fillRect(x0 + 1, Math.round(cy - r + 1), 1, 2); } });
   g.font = "8px Galmuri11, monospace"; g.textBaseline = "top";
   MINI.pop.forEach((p) => { g.fillStyle = "#B88A00"; g.fillText(`+${p.v}`, Math.round(p.x), Math.round(p.y)); });
@@ -2073,7 +2093,7 @@ function startCarryOffer() {
   const p = G.p, free = G.robots.filter((r) => !r.rider && !["follow", "nudge", "waiting", "npcFollow"].includes(r.state));
   if (!free.length) return;
   const cost = reachCost;
-  const r = free.sort((a, b) => cost(a) - cost(b))[0];
+  const r = free.sort((a, b) => cost(a) - cost(b))[0]; r.route = null; summonNear(r);
   const f = fwd(); r.side = (r.x - p.x) * -f.z + (r.z - p.z) * f.x >= 0 ? 1 : -1; r.npcTarget = null; r.state = "carryOffer"; r.blockT = 0;
   G.carryOffer = { robot: r, startAt: G.t, shownAt: null, response: "approaching" };
   log("carry_offer_approach", { robot: r.id });
@@ -2082,7 +2102,7 @@ function stepCarryOffer() {
   const o = G.carryOffer; if (!o) return; const p = G.p, r = o.robot;
   if (o.response === "approaching") {
     if (G.t - o.startAt > 9) { resolveCarry("not_reached"); return; }
-    if (Math.hypot(r.tx - r.x, r.tz - r.z) < 0.4 || (Math.hypot(r.x - p.x, r.z - p.z) < 1.5 && G.t - o.startAt > 1.8) || (Math.hypot(r.x - p.x, r.z - p.z) < 2.4 && G.t - o.startAt > 4.5)) { SND.tap(); SND.pop(); o.response = "pending"; o.shownAt = G.t; G.shake = 0.6; G.shakeSide = r.side; log("carry_offer_tap"); }
+    if (Math.hypot(r.tx - r.x, r.tz - r.z) < 0.5 || (Math.hypot(r.x - p.x, r.z - p.z) < 1.4 && G.t - o.startAt > 1.3 && seenBy(r)) || (Math.hypot(r.x - p.x, r.z - p.z) < 1.6 && G.t - o.startAt > 2.4) || (Math.hypot(r.x - p.x, r.z - p.z) < 2.4 && G.t - o.startAt > 4.5)) { SND.tap(); SND.pop(); o.response = "pending"; o.shownAt = G.t; G.shake = 0.6; G.shakeSide = r.side; log("carry_offer_tap"); }
     return;
   }
   if (Math.hypot(r.x - p.x, r.z - p.z) > 3) resolveCarry("walked_away");
@@ -2102,20 +2122,33 @@ function sideSpot(side, angles, rad) {
   for (const deg of angles) { const t = (-deg * side) * Math.PI / 180, x = p.x + (f.x * Math.cos(t) + rx * Math.sin(t)) * rad, z = p.z + (f.z * Math.cos(t) + rz * Math.sin(t)) * rad; if (!nearCar(x, z, 0.55) && !botStatic(x, z) && walkable(x, z, true)) return { x, z }; }
   return { x: p.x - f.x * rad, z: p.z - f.z * rad };
 }
-const OFFER_ANG = [55, 80, 105, 130, 155];
+const OFFER_ANG = [75, 95, 60, 115, 135, 155]; // beside me first, so the robot stays in view
 // offers must land within ~5 s: pick the robot with the shortest way and speed it up to arrive in time
 function wayLen(x0, z0, x1, z1) { if (segClear(x0, z0, x1, z1)) return Math.hypot(x1 - x0, z1 - z0); let L = 0, px = x0, pz = z0; planPath(x0, z0, x1, z1).forEach((w) => { L += Math.hypot(w.x - px, w.z - pz); px = w.x; pz = w.z; }); return L; }
 function hurry(r, startAt) {
   const p = G.p, el = G.t - startAt, dd = wayLen(r.x, r.z, p.x, p.z);
-  const sp = Math.min(3.6, Math.max(1.2, (dd - 1.0) / Math.max(0.35, 1.8 - el)));
+  const sp = Math.min(3.0, Math.max(1.3, (dd - 1.0) / Math.max(0.45, 1.5 - el)));
   r.cur = Math.max(r.cur || 0, sp * 0.85); return sp;
 }
 const reachCost = (o) => wayLen(o.x, o.z, G.p.x, G.p.z) - (o.buddy ? 1 : 0);
+// every robot too far to reach me in about 2 s at a calm pace: bring one in from just outside the view (behind the camera)
+// the robot stands where I can see it (not behind my back)
+function seenBy(r) { const p = G.p, f = fwd(), dx = r.x - p.x, dz = r.z - p.z, d = Math.hypot(dx, dz) || 1; return (dx * f.x + dz * f.z) / d > Math.cos(118 * Math.PI / 180); }
+function summonNear(r) {
+  if (reachCost(r) <= 5.4) return;
+  const p = G.p, f = fwd(), rx = -f.z, rz = f.x;
+  for (const rad of [4.4, 5.0, 3.9]) for (const deg of [180, 158, 202, 138, 222]) {
+    const t = deg * Math.PI / 180, x = p.x + (f.x * Math.cos(t) + rx * Math.sin(t)) * rad, z = p.z + (f.z * Math.cos(t) + rz * Math.sin(t)) * rad;
+    if (!walkable(x, z, true) || botStatic(x, z) || nearCar(x, z, 0.8) || !segClear(x, z, p.x, p.z) || G.robots.some((o) => o !== r && Math.hypot(o.x - x, o.z - z) < 1.1)) continue;
+    log("bot_summon", { robot: r.id, from: +reachCost(r).toFixed(1) });
+    r.x = x; r.z = z; r.ry = Math.atan2(p.x - x, p.z - z); r.route = null; r.cur = 1.0; r.look = null; return;
+  }
+}
 function startNudge() {
   const p = G.p, free = G.robots.filter((r) => !r.rider && !["npcOffer", "follow", "carryOffer", "npcFollow"].includes(r.state));
   if (!free.length) return;
   free.sort((a, b) => reachCost(a) - reachCost(b));
-  const r = free[0]; if (r.npcTarget) r.npcTarget = null; r.route = null; r.blockT = 0;
+  const r = free[0]; if (r.npcTarget) r.npcTarget = null; r.route = null; r.blockT = 0; summonNear(r);
   const f = fwd(); const rel = (r.x - p.x) * -f.z + (r.z - p.z) * f.x; r.side = rel >= 0 ? 1 : -1;
   r.state = "nudge";
   G.offer = { n: G.offers.length + 1, robot: r, startAt: G.t, ht: Math.round(G.ht), standSec: Math.round(G.sinceSit), zone: zoneOf(p.x, p.z), shownAt: null, response: "approaching" };
@@ -2126,7 +2159,7 @@ function stepOffer(dt) {
   if (o.response === "approaching") {
     if (p.seat) { resolveOffer("sat_elsewhere"); return; }
     if (G.t - o.startAt > 30) { log("nudge_cancel", { n: o.n }); G.offer = null; startRetreat(r); G.nudgeCool = 8; return; }
-    if (Math.hypot(r.tx - r.x, r.tz - r.z) < 0.4 || (Math.hypot(r.x - p.x, r.z - p.z) < 1.5 && G.t - o.startAt > 1.8) || (Math.hypot(r.x - p.x, r.z - p.z) < 2.4 && G.t - o.startAt > 4.5)) {
+    if (Math.hypot(r.tx - r.x, r.tz - r.z) < 0.5 || (Math.hypot(r.x - p.x, r.z - p.z) < 1.4 && G.t - o.startAt > 1.3 && seenBy(r)) || (Math.hypot(r.x - p.x, r.z - p.z) < 1.6 && G.t - o.startAt > 2.4) || (Math.hypot(r.x - p.x, r.z - p.z) < 2.4 && G.t - o.startAt > 4.5)) {
       SND.tap(); SND.pop();
       o.response = "pending"; o.shownAt = G.t; r.state = "waiting";
       G.shake = 0.9; G.shakeSide = r.side; log("nudge_tap", { n: o.n });
