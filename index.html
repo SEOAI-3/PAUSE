@@ -2676,9 +2676,10 @@ $("btn-admin").addEventListener("click", (e) => { e.preventDefault(); openAdmin(
 const tryAdmin = async () => {
   if (HOSTED_OUTSIDE) {
     $("admin-msg").textContent = "확인하는 중입니다."; adminKey = $("admin-pw").value;
-    let ok = false; try { ok = !!(await adminApi({ mode: "auth" }))?.ok; } catch {}
-    if (ok) { adminOK = true; $("m-admin").hidden = true; location.hash = "#results"; route(); }
-    else { adminKey = ""; $("admin-msg").textContent = "비밀번호가 맞지 않거나 시트에 연결할 수 없습니다."; $("admin-pw").select(); }
+    let res = "net";
+    try { const r = await fetch(`${COLLECT_URL}?${new URLSearchParams({ mode: "auth", key: adminKey })}`, { cache: "no-store" }); const t = await r.text(); try { res = JSON.parse(t)?.ok ? "ok" : "wrong"; } catch { res = "old"; } } catch {}
+    if (res === "ok") { adminOK = true; $("m-admin").hidden = true; location.hash = "#results"; route(); }
+    else { adminKey = ""; $("admin-msg").textContent = res === "wrong" ? "비밀번호가 맞지 않습니다." : res === "old" ? "구글 스크립트가 아직 예전 버전입니다. 새 코드로 바꾼 뒤 ‘새 버전’으로 다시 배포해 주세요." : "구글 시트에 연결할 수 없습니다. 잠시 뒤 다시 시도해 주세요."; $("admin-pw").select(); }
     return;
   }
   if ($("admin-pw").value === "0309") { adminOK = true; $("m-admin").hidden = true; location.hash = "#results"; route(); } else { $("admin-msg").textContent = "비밀번호가 맞지 않습니다."; $("admin-pw").select(); } };
